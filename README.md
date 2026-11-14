@@ -26,7 +26,11 @@ npm run lint
 - `vite.config.ts`: PWA manifest and caching rules
 - `public/logo.svg`: app icon source. Regenerate PNGs with `npx @vite-pwa/assets-generator --preset minimal-2023 public/logo.svg`
 
+## Hosting
+Live at https://roadster.beckypadget96.workers.dev/ on Cloudflare Workers (static assets, see `wrangler.jsonc`).
+Cloudflare rebuilds and redeploys automatically on every push to `main` on GitHub.
+
 ## Installing on a phone
-PWAs need HTTPS to install. Deploy `dist/` to a static host (Netlify, Vercel, Cloudflare Pages, GitHub Pages), open it on the phone, then:
+Open the live address, then:
 - iPhone (Safari): Share → Add to Home Screen
 - Android (Chrome): menu → Install app
