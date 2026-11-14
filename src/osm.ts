@@ -1,5 +1,6 @@
 import { haversineKm } from './geo'
 import type { Suggestion } from './discover'
+import { overpass } from './overpass'
 
 /**
  * Viewpoints and beaches from OpenStreetMap via the Overpass API. These fill a
@@ -9,9 +10,6 @@ import type { Suggestion } from './discover'
  * mirror, each with a time limit, and keep results on the device (viewpoints
  * and beaches rarely change). Callers treat failure as "not available right now".
  */
-
-const ENDPOINTS = ['https://overpass-api.de/api/interpreter', 'https://overpass.private.coffee/api/interpreter']
-const TIMEOUT_MS = 15000
 
 type Pt = { lat: number; lng: number }
 
@@ -55,57 +53,37 @@ function recall(key: string): OsmPlace[] | null {
 
 // ---------- Fetching ----------
 
-function withTimeout(signal: AbortSignal | undefined, ms: number) {
-  const t = AbortSignal.timeout(ms)
-  return signal ? AbortSignal.any([signal, t]) : t
-}
-
-async function overpass(area: string, signal?: AbortSignal): Promise<OsmPlace[]> {
+async function fetchPlaces(area: string, signal?: AbortSignal): Promise<OsmPlace[]> {
   const query =
     `[out:json][timeout:20];(` +
     `nwr(${area})["tourism"="viewpoint"];` +
     `nwr(${area})["natural"="beach"];` +
     `node(${area})["highway"="trailhead"];` +
     `);out center tags 400;`
-  let lastError: unknown
-  for (const url of ENDPOINTS) {
-    try {
-      const res = await fetch(url, {
-        method: 'POST',
-        body: new URLSearchParams({ data: query }),
-        signal: withTimeout(signal, TIMEOUT_MS),
-      })
-      if (!res.ok) throw new Error(`Overpass ${res.status}`)
-      const data = await res.json()
-      return (data.elements as { type: string; id: number; lat?: number; lon?: number; center?: { lat: number; lon: number }; tags?: Record<string, string> }[])
-        .map((e) => {
-          const t = e.tags ?? {}
-          const lat = e.lat ?? e.center?.lat
-          const lng = e.lon ?? e.center?.lon
-          if (lat == null || lng == null) return null
-          return {
-            ref: `${e.type}/${e.id}`,
-            lat,
-            lng,
-            kind: t.tourism === 'viewpoint' ? 'viewpoint' : t.highway === 'trailhead' ? 'trailhead' : 'beach',
-            name: t['name:en'] || t.name,
-            description: t.description,
-            surface: t.surface,
-          } as OsmPlace
-        })
-        .filter((x): x is OsmPlace => !!x)
-    } catch (e) {
-      if (signal?.aborted) throw e
-      lastError = e
-    }
-  }
-  throw lastError ?? new Error('Overpass unavailable')
+  const elements = await overpass(query, signal)
+  return elements
+    .map((e) => {
+      const t = e.tags ?? {}
+      const lat = e.lat ?? e.center?.lat
+      const lng = e.lon ?? e.center?.lon
+      if (lat == null || lng == null) return null
+      return {
+        ref: `${e.type}/${e.id}`,
+        lat,
+        lng,
+        kind: t.tourism === 'viewpoint' ? 'viewpoint' : t.highway === 'trailhead' ? 'trailhead' : 'beach',
+        name: t['name:en'] || t.name,
+        description: t.description,
+        surface: t.surface,
+      } as OsmPlace
+    })
+    .filter((x): x is OsmPlace => !!x)
 }
 
 async function cached(key: string, area: string, signal?: AbortSignal) {
   const hit = recall(key)
   if (hit) return hit
-  const places = await overpass(area, signal)
+  const places = await fetchPlaces(area, signal)
   remember(key, places)
   return places
 }

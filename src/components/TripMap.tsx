@@ -1,9 +1,10 @@
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { categoryInfo, type Suggestion } from '../discover'
 import type { Plan, RouteInfo, Stop } from '../types'
+import { CarParkLayer, VanLayer, type AddPlace, type LayerStatus } from './MapLayers'
 
 type Pt = { lat: number; lng: number }
 
@@ -37,14 +38,23 @@ function FitStops({ stops, active }: { stops: Stop[]; active: boolean }) {
   return null
 }
 
-/** When a set of suggestions appears, fit the map to them. */
+/**
+ * When a Discover panel first fills, fit the map to its suggestions. Later
+ * updates (trails or viewpoints arriving, filters, "show more") don't move the
+ * map, so they never undo the user's own panning and zooming.
+ */
 function FitSuggestions({ points }: { points: Pt[] }) {
   const map = useMap()
-  const key = points.map((p) => `${p.lat},${p.lng}`).join('|')
+  const shown = useRef(false)
   useEffect(() => {
-    if (points.length) map.fitBounds(L.latLngBounds(points.map((p) => [p.lat, p.lng])), { padding: [40, 40], maxZoom: 12 })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map, key])
+    if (!points.length) {
+      shown.current = false
+      return
+    }
+    if (shown.current) return
+    shown.current = true
+    map.fitBounds(L.latLngBounds(points.map((p) => [p.lat, p.lng])), { padding: [40, 40], maxZoom: 12 })
+  }, [map, points])
   return null
 }
 
@@ -61,14 +71,46 @@ interface Props {
   route: RouteInfo | null
   suggestions: Suggestion[]
   focus: (Pt & { title: string }) | null
+  onAddStop: (p: AddPlace) => void
 }
 
-export function TripMap({ stops, route, suggestions, focus }: Props) {
+type Layers = { parking: boolean; van: boolean }
+const LAYERS_KEY = 'roadster.layers'
+const loadLayers = (): Layers => {
+  try {
+    return { parking: false, van: false, ...JSON.parse(localStorage.getItem(LAYERS_KEY) || '{}') }
+  } catch {
+    return { parking: false, van: false }
+  }
+}
+
+export function TripMap({ stops, route, suggestions, focus, onAddStop }: Props) {
+  const [layers, setLayers] = useState<Layers>(loadLayers)
+  const [parkStatus, setParkStatus] = useState<LayerStatus>(null)
+  const [vanStatus, setVanStatus] = useState<LayerStatus>(null)
+  useEffect(() => {
+    try { localStorage.setItem(LAYERS_KEY, JSON.stringify(layers)) } catch { /* ignore */ }
+  }, [layers])
+  const toggle = (k: keyof Layers) => setLayers((l) => ({ ...l, [k]: !l[k] }))
+  const statuses = [layers.parking && parkStatus, layers.van && vanStatus].filter(Boolean) as NonNullable<LayerStatus>[]
+
   const plans: Plan[] = stops.flatMap((s) => s.plans ?? []).filter((p) => !p.noMarker)
   const mappable = suggestions.filter((s) => !s.noMarker)
   const suggestionsShown = mappable.filter((s) => !plans.some((p) => (p.sourceId ?? p.title) === s.id))
 
   return (
+    <div className="map-shell">
+    <div className="layer-controls" role="group" aria-label="Map layers">
+      <button type="button" className={`layer-btn${layers.parking ? ' on' : ''}`} aria-pressed={layers.parking} onClick={() => toggle('parking')}>
+        <span className="lyr lyr-parking" aria-hidden="true">P</span> Car parks
+      </button>
+      <button type="button" className={`layer-btn${layers.van ? ' on' : ''}`} aria-pressed={layers.van} onClick={() => toggle('van')}>
+        <span aria-hidden="true">🚐</span> Overnight
+      </button>
+      {statuses.map((s, i) => (
+        <div key={i} className={`layer-status ${s.tone}`} role="status">{s.text}</div>
+      ))}
+    </div>
     <MapContainer center={[39.5, -98.35]} zoom={4} className="map" zoomControl>
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -100,9 +142,12 @@ export function TripMap({ stops, route, suggestions, focus }: Props) {
           </Popup>
         </Marker>
       ))}
+      {layers.parking && <CarParkLayer onStatus={setParkStatus} onAddStop={onAddStop} />}
+      {layers.van && <VanLayer onStatus={setVanStatus} onAddStop={onAddStop} />}
       <FitStops stops={stops} active={mappable.length === 0} />
       <FitSuggestions points={mappable} />
       <FlyTo focus={focus} />
     </MapContainer>
+    </div>
   )
 }

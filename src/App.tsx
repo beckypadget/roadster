@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Home } from './components/Home'
 import { TripMap } from './components/TripMap'
 import { TripView } from './components/TripView'
+import { haversineKm } from './geo'
 import { getRoute, routeIsCached } from './routing'
 import { samplePacificCoastStops } from './sampleTrip'
 import { useTrips } from './storage'
@@ -79,7 +80,24 @@ export default function App() {
             />
           </section>
           <section className="map-wrap">
-            <TripMap stops={trip.stops} route={route} suggestions={suggestions} focus={focus} />
+            <TripMap
+              stops={trip.stops}
+              route={route}
+              suggestions={suggestions}
+              focus={focus}
+              onAddStop={(p) => {
+                // Insert after the nearest existing stop (drag to adjust)
+                const stops = trip.stops
+                let at = stops.length
+                if (stops.length) {
+                  const nearest = stops.reduce((best, s, i) => (haversineKm(s, p) < haversineKm(stops[best], p) ? i : best), 0)
+                  at = nearest + 1
+                }
+                const next = [...stops]
+                next.splice(at, 0, { id: crypto.randomUUID(), name: p.name, lat: p.lat, lng: p.lng, nights: 0, notes: p.notes ?? '' })
+                updateTrip({ ...trip, stops: next })
+              }}
+            />
           </section>
         </main>
       ) : (
