@@ -7,6 +7,7 @@ import {
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useState } from 'react'
 import type { Suggestion } from '../discover'
+import { nightNumbers, pinLabels, type PinMode } from '../pins'
 import type { Plan, RoadPref, RouteInfo, Stop, Trip } from '../types'
 import { Discover } from './Discover'
 import { PlanList } from './PlanList'
@@ -26,6 +27,7 @@ interface Props {
   onSuggestions: (list: Suggestion[]) => void
   onFocus: (p: { lat: number; lng: number; title: string } | null) => void
   onPreviewRoutes: (paths: [number, number][][]) => void
+  pinMode: PinMode
 }
 
 /** Drop where the pointer/finger is; fall back to nearest card (e.g. keyboard dragging). */
@@ -43,7 +45,9 @@ function addDays(iso: string, days: number) {
   return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
 }
 
-export function TripView({ trip, route, routeLoading, units, onChange, onDelete, onBack, onSuggestions, onFocus, onPreviewRoutes }: Props) {
+export function TripView({ trip, route, routeLoading, units, onChange, onDelete, onBack, onSuggestions, onFocus, onPreviewRoutes, pinMode }: Props) {
+  const badges = pinLabels(trip.stops, pinMode)
+  const firstNights = nightNumbers(trip.stops)
   const setStops = (stops: Stop[]) => onChange({ ...trip, stops })
   const updateStop = (id: string, patch: Partial<Stop>) =>
     setStops(trip.stops.map((s) => (s.id === id ? { ...s, ...patch } : s)))
@@ -159,6 +163,8 @@ export function TripView({ trip, route, routeLoading, units, onChange, onDelete,
                 stop={s}
                 index={i}
                 count={trip.stops.length}
+                badge={badges[i]}
+                nightsLabel={firstNights[i] == null ? null : s.nights > 1 ? `Nights ${firstNights[i]}–${firstNights[i]! + s.nights - 1}` : `Night ${firstNights[i]}`}
                 arrival={trip.startDate ? addDays(trip.startDate, arrivals[i]) : null}
                 leg={
                   i > 0 ? (

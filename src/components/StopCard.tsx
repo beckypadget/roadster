@@ -8,6 +8,10 @@ interface Props {
   stop: Stop
   index: number
   count: number
+  /** Number shown in the circle (night or stop number), or null for a dot */
+  badge: string | null
+  /** e.g. "Nights 1–2", or null when there are no nights here */
+  nightsLabel: string | null
   arrival: string | null
   /** The leg row for the drive to this stop (moves with the stop when dragged) */
   leg?: ReactNode
@@ -35,7 +39,7 @@ export function GripIcon() {
   )
 }
 
-export function StopCard({ stop, index, count, arrival, leg, plans, discoverOpen, onToggleDiscover, discover, onUpdate, onMove, onRemove }: Props) {
+export function StopCard({ stop, index, count, badge, nightsLabel, arrival, leg, plans, discoverOpen, onToggleDiscover, discover, onUpdate, onMove, onRemove }: Props) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
     id: stop.id,
   })
@@ -58,7 +62,9 @@ export function StopCard({ stop, index, count, arrival, leg, plans, discoverOpen
       >
         <GripIcon />
       </button>
-      <div className="stop-num">{index + 1}</div>
+      <div className={`stop-num${badge == null ? ' stop-num-dot' : ''}`} aria-label={badge == null ? 'No nights here' : undefined}>
+        {badge != null && badge}
+      </div>
       <div className="stop-body">
         <div className="row between">
           <strong>{stop.name}</strong>
@@ -68,7 +74,9 @@ export function StopCard({ stop, index, count, arrival, leg, plans, discoverOpen
             <button className="icon" aria-label="Remove stop" onClick={onRemove}>✕</button>
           </div>
         </div>
-        {arrival && <div className="hint">Arrive {arrival}</div>}
+        {(arrival || nightsLabel) && (
+          <div className="hint">{[arrival && `Arrive ${arrival}`, nightsLabel].filter(Boolean).join(' · ')}</div>
+        )}
         <div className="row">
           <span className="field inline">
             Nights

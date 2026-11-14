@@ -377,3 +377,12 @@ button.start-date:hover { background: var(--accent-soft); color: var(--text); }
 .stepper button:disabled { color: var(--border); cursor: default; }
 .field.inline .stepper input { width: 38px; text-align: center; border: none; border-radius: 0; padding: 5px 0; background: transparent; }
 .stepper input:focus { outline: none; background: var(--accent-soft); }
+
+/* Stop with no nights: a small dot instead of a number */
+.pin-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--accent); border: 3px solid var(--pin-border); box-shadow: 0 1px 4px var(--shadow); }
+.pin-dot.pin-end { background: #6b2a2a; }
+.pin-sample { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: #a14b2b; color: #fff; font-size: 10px; font-weight: 700; }
+
+/* Sidebar badge for a stop with no nights: small dot, centred where the number would be */
+.stop-num.stop-num-dot { background: transparent; }
+.stop-num.stop-num-dot::after { content: ''; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); }

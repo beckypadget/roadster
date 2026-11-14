@@ -7,6 +7,7 @@ import { getRoute, routeIsCached } from './routing'
 import { samplePacificCoastStops } from './sampleTrip'
 import { useTrips } from './storage'
 import type { Suggestion } from './discover'
+import { loadPinMode, savePinMode, type PinMode } from './pins'
 import type { RouteInfo } from './types'
 import { useHashRoute } from './useHashRoute'
 
@@ -29,6 +30,12 @@ export default function App() {
   const [focus, setFocus] = useState<{ lat: number; lng: number; title: string } | null>(null)
   // Alternative routes being compared for one leg, drawn faintly on the map
   const [previewRoutes, setPreviewRoutes] = useState<[number, number][][]>([])
+  // What the numbers on stop pins/badges mean: night number or stop order
+  const [pinMode, setPinMode] = useState<PinMode>(loadPinMode)
+  const changePinMode = (m: PinMode) => {
+    setPinMode(m)
+    savePinMode(m)
+  }
 
   const trip = page.page === 'trip' ? (trips.find((t) => t.id === page.id) ?? null) : null
   // Only re-route when stop positions/order or motorway settings change, not on note edits
@@ -80,6 +87,7 @@ export default function App() {
               onSuggestions={setSuggestions}
               onFocus={setFocus}
               onPreviewRoutes={setPreviewRoutes}
+              pinMode={pinMode}
             />
           </section>
           <section className="map-wrap">
@@ -89,6 +97,8 @@ export default function App() {
               suggestions={suggestions}
               focus={focus}
               previewRoutes={previewRoutes}
+              pinMode={pinMode}
+              onPinModeChange={changePinMode}
               onAddStop={(p) => {
                 // Insert after the nearest existing stop (drag to adjust)
                 const stops = trip.stops

@@ -3,19 +3,24 @@ import { MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from 'react-
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { categoryInfo, type Suggestion } from '../discover'
+import { nightNumbers, pinLabels, type PinMode } from '../pins'
 import type { Plan, RouteInfo, Stop } from '../types'
 import { CarParkLayer, VanLayer, type AddPlace, type LayerStatus } from './MapLayers'
 
 type Pt = { lat: number; lng: number }
 
-function numberedIcon(n: number, last: boolean) {
+/** A numbered stop pin, or a small dot when `label` is null (no nights there). */
+function stopIcon(label: string | null, last: boolean) {
+  if (label == null)
+    return L.divIcon({ className: '', html: `<div class="pin-dot${last ? ' pin-end' : ''}"></div>`, iconSize: [14, 14], iconAnchor: [7, 7] })
   return L.divIcon({
     className: '',
-    html: `<div class="pin${last ? ' pin-end' : ''}">${n}</div>`,
+    html: `<div class="pin${last ? ' pin-end' : ''}">${label}</div>`,
     iconSize: [28, 28],
     iconAnchor: [14, 14],
   })
 }
+
 
 const placeIcon = (emoji: string, kind: 'suggestion' | 'plan', focused: boolean) =>
   L.divIcon({
@@ -74,6 +79,8 @@ interface Props {
   onAddStop: (p: AddPlace) => void
   /** Alternative routes being compared, drawn faintly under the route */
   previewRoutes: [number, number][][]
+  pinMode: PinMode
+  onPinModeChange: (m: PinMode) => void
 }
 
 type Layers = { parking: boolean; van: boolean }
@@ -86,14 +93,16 @@ const loadLayers = (): Layers => {
   }
 }
 
-export function TripMap({ stops, route, suggestions, focus, onAddStop, previewRoutes }: Props) {
+export function TripMap({ stops, route, suggestions, focus, onAddStop, previewRoutes, pinMode, onPinModeChange }: Props) {
   const [layers, setLayers] = useState<Layers>(loadLayers)
   const [parkStatus, setParkStatus] = useState<LayerStatus>(null)
   const [vanStatus, setVanStatus] = useState<LayerStatus>(null)
   useEffect(() => {
     try { localStorage.setItem(LAYERS_KEY, JSON.stringify(layers)) } catch { /* ignore */ }
   }, [layers])
-  const toggle = (k: keyof Layers) => setLayers((l) => ({ ...l, [k]: !l[k] }))
+  const toggle = (k: 'parking' | 'van') => setLayers((l) => ({ ...l, [k]: !l[k] }))
+  const nights = nightNumbers(stops)
+  const labels = pinLabels(stops, pinMode)
   const statuses = [layers.parking && parkStatus, layers.van && vanStatus].filter(Boolean) as NonNullable<LayerStatus>[]
 
   const plans: Plan[] = stops.flatMap((s) => s.plans ?? []).filter((p) => !p.noMarker)
@@ -108,6 +117,14 @@ export function TripMap({ stops, route, suggestions, focus, onAddStop, previewRo
       </button>
       <button type="button" className={`layer-btn${layers.van ? ' on' : ''}`} aria-pressed={layers.van} onClick={() => toggle('van')}>
         <span aria-hidden="true">🚐</span> Overnight
+      </button>
+      <button
+        type="button"
+        className="layer-btn"
+        title="What the numbers on the stop pins mean"
+        onClick={() => onPinModeChange(pinMode === 'nights' ? 'stops' : 'nights')}
+      >
+        <span className="pin-sample" aria-hidden="true">1</span> Pins: {pinMode === 'nights' ? 'Nights' : 'Stops'}
       </button>
       {statuses.map((s, i) => (
         <div key={i} className={`layer-status ${s.tone}`} role="status">{s.text}</div>
@@ -139,14 +156,24 @@ export function TripMap({ stops, route, suggestions, focus, onAddStop, previewRo
           <Popup><strong>{s.title}</strong><div>{s.description}</div></Popup>
         </Marker>
       ))}
-      {stops.map((s, i) => (
-        <Marker key={s.id} position={[s.lat, s.lng]} icon={numberedIcon(i + 1, i === stops.length - 1 && i > 0)} zIndexOffset={1000}>
-          <Popup>
-            <strong>{s.name}</strong>
-            {s.nights > 0 && <div>{s.nights} night{s.nights > 1 ? 's' : ''}</div>}
-          </Popup>
-        </Marker>
-      ))}
+      {stops.map((s, i) => {
+        const last = i === stops.length - 1 && i > 0
+        const first = nights[i]
+        const label = labels[i]
+        return (
+          <Marker key={s.id} position={[s.lat, s.lng]} icon={stopIcon(label, last)} zIndexOffset={1000}>
+            <Popup>
+              <strong>{s.name}</strong>
+              <div>
+                Stop {i + 1}
+                {first != null
+                  ? ` · ${s.nights > 1 ? `nights ${first}–${first + s.nights - 1}` : `night ${first}`}`
+                  : i === 0 ? ' · start' : last ? ' · end' : ' · passing through'}
+              </div>
+            </Popup>
+          </Marker>
+        )
+      })}
       {layers.parking && <CarParkLayer onStatus={setParkStatus} onAddStop={onAddStop} />}
       {layers.van && <VanLayer onStatus={setVanStatus} onAddStop={onAddStop} />}
       <FitStops stops={stops} active={mappable.length === 0} />
