@@ -82,7 +82,7 @@ export function TripView({ trip, route, routeLoading, units, onChange, onDelete,
   const addPlan = (stopId: string, s: Suggestion, onTheWay: boolean) => {
     const plan: Plan = {
       id: crypto.randomUUID(), title: s.title, lat: s.lat, lng: s.lng, category: s.category,
-      description: s.description, thumbnail: s.thumbnail, sourceId: s.id, link: s.link, onTheWay,
+      description: s.description, thumbnail: s.thumbnail, sourceId: s.id, link: s.link, noMarker: s.noMarker, onTheWay,
     }
     setStops(trip.stops.map((x) => (x.id === stopId ? { ...x, plans: [...(x.plans ?? []), plan] } : x)))
   }

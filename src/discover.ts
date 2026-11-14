@@ -7,13 +7,14 @@ import { haversineKm } from './geo'
  * anything that doesn't match a category (villages, schools, stations…) is dropped.
  */
 
-export type Category = 'castles' | 'history' | 'coast' | 'nature' | 'scenic' | 'attractions'
+export type Category = 'castles' | 'history' | 'coast' | 'nature' | 'hikes' | 'scenic' | 'attractions'
 
 export const CATEGORIES: { id: Category; label: string; icon: string }[] = [
   { id: 'castles', label: 'Castles & houses', icon: '🏰' },
   { id: 'history', label: 'History', icon: '🏛' },
   { id: 'coast', label: 'Views & coast', icon: '🌊' },
   { id: 'nature', label: 'Nature', icon: '⛰' },
+  { id: 'hikes', label: 'Hikes & walks', icon: '🥾' },
   { id: 'scenic', label: 'Scenic drives', icon: '🛣' },
   { id: 'attractions', label: 'Museums & attractions', icon: '🎟' },
 ]
@@ -32,6 +33,8 @@ export interface Suggestion {
   category: Category
   description: string
   thumbnail?: string
+  /** No exact location to show (e.g. a long-distance trail passing through) */
+  noMarker?: boolean
   /** km from the stop (stop mode) or from the route (leg mode) */
   distanceKm: number
   score: number
@@ -41,6 +44,7 @@ export interface Suggestion {
 const EXCLUDE = /\b(human settlement|village|town|city|hamlet|suburb|civil parish|community council|council area|railway station|bus station|school|college|university|hospital|football|rugby|cricket|club\b|stadium|sports venue|court|prison|radio|newspaper|company|business|shopping|retail|power station|substation|hydroelectric|military|airport|airfield|constituency|electoral|ward\b|parliament|council|police|fire station|judicial|courthouse|cemetery|graveyard|hotel|restaurant|pub\b|inn\b|band\b|album|song|film|novel|person|politician|footballer|church of scotland congregation|parish church)\b/i
 
 const RULES: [Category, RegExp][] = [
+  ['hikes', /\b(footpath|hiking trail|hiking route|walking route|walking trail|long[- ]distance (foot)?path|long[- ]distance trail|long[- ]distance route|nature trail|trail\b|walkway|hill ?walk)/i],
   ['scenic', /\b(mountain pass|scenic|tourist route|tourist drive|coastal route|pass\b|bealach)\b/i],
   ['castles', /\b(castle|palace|tower house|stately home|country house|manor|château|chateau|fortress|fortified house|mansion)\b/i],
   ['history', /\b(abbey|priory|cathedral|monastery|ruin|ruins|battle|battlefield|siege|monument|memorial|archaeological|standing stone|stone circle|broch|cairn|hillfort|hill fort|roman|neolithic|bronze age|iron age|pictish|viking|chapel|historic|heritage site|fort\b|crannog)\b/i],
@@ -61,7 +65,7 @@ function classify(title: string, description: string, length: number): Category 
 }
 
 const CATEGORY_BOOST: Record<Category, number> = {
-  castles: 0.6, history: 0.3, coast: 0.4, nature: 0.4, scenic: 0.6, attractions: 0.3,
+  castles: 0.6, history: 0.3, coast: 0.4, nature: 0.4, hikes: 0.5, scenic: 0.6, attractions: 0.3,
 }
 
 interface WikiPage {

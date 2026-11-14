@@ -3,7 +3,8 @@ import {
   CATEGORIES, categoryInfo, fetchExtract, mixCategories, suggestAlong, suggestNear,
   type Category, type Suggestion,
 } from '../discover'
-import { mergeOsm, osmAlong, osmNear } from '../osm'
+import { mergeExtras, osmAlong, osmNear } from '../osm'
+import { trailsAlong, trailsNear } from '../trails'
 
 interface Props {
   /** 'stop': near a point; 'leg': along a route path */
@@ -35,7 +36,10 @@ export function Discover({ mode, center, path, placeName, units, savedIds, onAdd
   const [osm, setOsm] = useState<Suggestion[]>([])
   const [osmStatus, setOsmStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [osmRetry, setOsmRetry] = useState(0)
-  const all = useMemo(() => mergeOsm(wiki, osm.map((o) => ({ ...o }))), [wiki, osm])
+  // Hiking routes from Waymarked Trails, also loaded separately
+  const [trails, setTrails] = useState<Suggestion[]>([])
+  const [trailStatus, setTrailStatus] = useState<'loading' | 'ready' | 'error'>('loading')
+  const all = useMemo(() => mergeExtras(wiki, [...trails, ...osm].map((o) => ({ ...o }))), [wiki, osm, trails])
   const [filter, setFilter] = useState<Category | 'all'>('all')
   const [shown, setShown] = useState(PAGE)
   const [retry, setRetry] = useState(0)
@@ -68,6 +72,22 @@ export function Discover({ mode, center, path, placeName, units, savedIds, onAdd
       })
       .catch(() => {
         if (!ctrl.signal.aborted) setOsmStatus('error')
+      })
+    return () => ctrl.abort()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, osmRetry])
+
+  useEffect(() => {
+    const ctrl = new AbortController()
+    setTrailStatus('loading')
+    const run = mode === 'stop' ? trailsNear(center!, ctrl.signal) : trailsAlong(path ?? [], ctrl.signal)
+    run
+      .then((list) => {
+        setTrails(list)
+        setTrailStatus('ready')
+      })
+      .catch(() => {
+        if (!ctrl.signal.aborted) setTrailStatus('error')
       })
     return () => ctrl.abort()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -124,7 +144,17 @@ export function Discover({ mode, center, path, placeName, units, savedIds, onAdd
             ))}
           </div>
 
-          {osmStatus === 'loading' && <p className="hint">Adding viewpoints and beaches…</p>}
+          {(osmStatus === 'loading' || trailStatus === 'loading') && (
+            <p className="hint">
+              Adding {[trailStatus === 'loading' && 'trails', osmStatus === 'loading' && 'viewpoints and beaches'].filter(Boolean).join(' and ')}…
+            </p>
+          )}
+          {trailStatus === 'error' && (
+            <p className="hint">
+              Trails aren’t available right now.{' '}
+              <button type="button" className="link" onClick={() => setOsmRetry((n) => n + 1)}>Try again</button>
+            </p>
+          )}
           {osmStatus === 'error' && (
             <p className="hint">
               Viewpoints and beaches aren’t available right now (the map server is busy).{' '}
@@ -150,7 +180,7 @@ export function Discover({ mode, center, path, placeName, units, savedIds, onAdd
               Show more ({visible.length - shown})
             </button>
           )}
-          <p className="hint attribution">Places and photos from Wikipedia; viewpoints and beaches from © OpenStreetMap contributors.</p>
+          <p className="hint attribution">Places and photos from Wikipedia; trails from Waymarked Trails; viewpoints, beaches and trailheads from © OpenStreetMap contributors.</p>
         </>
       )}
     </section>
@@ -172,13 +202,13 @@ function SuggestionCard({ s, mode, units, saved, onAddPlan, onAddStop, onFocus }
     setOpen((o) => !o)
     if (extract != null) return
     if (s.source === 'wikipedia') fetchExtract(s.title).then(setExtract).catch(() => setExtract(''))
-    else setExtract(`${s.description} from OpenStreetMap.`)
+    else setExtract(s.description)
   }
   const cat = categoryInfo(s.category)
 
   return (
     <li className="suggestion">
-      <button type="button" className="sugg-main" onClick={onFocus} title="Show on map">
+      <button type="button" className="sugg-main" onClick={s.noMarker ? toggle : onFocus} title={s.noMarker ? undefined : 'Show on map'}>
         {s.thumbnail ? (
           <img src={s.thumbnail} alt="" loading="lazy" className="sugg-img" />
         ) : (
@@ -188,14 +218,14 @@ function SuggestionCard({ s, mode, units, saved, onAddPlan, onAddStop, onFocus }
           <strong>{s.title}</strong>
           <span className="sugg-desc">{s.description}</span>
           <span className="sugg-meta">
-            {cat.icon} {cat.label} · {fmt(s.distanceKm, units)} {mode === 'stop' ? 'away' : 'off route'}
+            {cat.icon} {cat.label} · {s.noMarker ? 'passes through' : `${fmt(s.distanceKm, units)} ${mode === 'stop' ? 'away' : 'off route'}`}
           </span>
         </span>
       </button>
       {open && (
         <p className="sugg-extract">
           {extract == null ? 'Loading…' : extract || 'No summary available.'}{' '}
-          <a href={s.link} target="_blank" rel="noreferrer">{s.source === 'wikipedia' ? 'Wikipedia' : 'OpenStreetMap'} ↗</a>
+          <a href={s.link} target="_blank" rel="noreferrer">{s.source === 'wikipedia' ? 'Wikipedia' : s.id.startsWith('wmt:') ? 'Waymarked Trails' : 'OpenStreetMap'} ↗</a>
         </p>
       )}
       <div className="sugg-actions">
@@ -205,7 +235,7 @@ function SuggestionCard({ s, mode, units, saved, onAddPlan, onAddStop, onFocus }
           <span className="saved">✓ Saved</span>
         ) : (
           <>
-            <button type="button" className="btn small" onClick={onAddStop}>Add as stop</button>
+            {!s.noMarker && <button type="button" className="btn small" onClick={onAddStop}>Add as stop</button>}
             <button type="button" className="btn small primary" onClick={onAddPlan}>Add to plans</button>
           </>
         )}

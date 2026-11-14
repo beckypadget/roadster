@@ -64,8 +64,9 @@ interface Props {
 }
 
 export function TripMap({ stops, route, suggestions, focus }: Props) {
-  const plans: Plan[] = stops.flatMap((s) => s.plans ?? [])
-  const suggestionsShown = suggestions.filter((s) => !plans.some((p) => (p.sourceId ?? p.title) === s.id))
+  const plans: Plan[] = stops.flatMap((s) => s.plans ?? []).filter((p) => !p.noMarker)
+  const mappable = suggestions.filter((s) => !s.noMarker)
+  const suggestionsShown = mappable.filter((s) => !plans.some((p) => (p.sourceId ?? p.title) === s.id))
 
   return (
     <MapContainer center={[39.5, -98.35]} zoom={4} className="map" zoomControl>
@@ -99,8 +100,8 @@ export function TripMap({ stops, route, suggestions, focus }: Props) {
           </Popup>
         </Marker>
       ))}
-      <FitStops stops={stops} active={suggestions.length === 0} />
-      <FitSuggestions points={suggestions} />
+      <FitStops stops={stops} active={mappable.length === 0} />
+      <FitSuggestions points={mappable} />
       <FlyTo focus={focus} />
     </MapContainer>
   )

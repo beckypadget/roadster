@@ -24,7 +24,7 @@ export function PlanList({ plans, onToggleDone, onRemove, onFocus }: Props) {
                 onChange={() => onToggleDone(p.id)}
                 aria-label={`Mark ${p.title} as visited`}
               />
-              <button type="button" className="plan-name" onClick={() => onFocus(p)} title="Show on map">
+              <button type="button" className="plan-name" onClick={() => !p.noMarker && onFocus(p)} title={p.noMarker ? undefined : 'Show on map'}>
                 <span aria-hidden="true">{categoryInfo(p.category).icon}</span> {p.title}
               </button>
               <a className="icon" href={p.link ?? wikipediaUrl(p.title)} target="_blank" rel="noreferrer" aria-label={`More about ${p.title}`}>ⓘ</a>

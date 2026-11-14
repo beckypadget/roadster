@@ -19,7 +19,7 @@ interface OsmPlace {
   ref: string // e.g. "node/123"
   lat: number
   lng: number
-  kind: 'viewpoint' | 'beach'
+  kind: 'viewpoint' | 'beach' | 'trailhead'
   name?: string
   description?: string
   surface?: string
@@ -65,6 +65,7 @@ async function overpass(area: string, signal?: AbortSignal): Promise<OsmPlace[]>
     `[out:json][timeout:20];(` +
     `nwr(${area})["tourism"="viewpoint"];` +
     `nwr(${area})["natural"="beach"];` +
+    `node(${area})["highway"="trailhead"];` +
     `);out center tags 400;`
   let lastError: unknown
   for (const url of ENDPOINTS) {
@@ -86,7 +87,7 @@ async function overpass(area: string, signal?: AbortSignal): Promise<OsmPlace[]>
             ref: `${e.type}/${e.id}`,
             lat,
             lng,
-            kind: t.tourism === 'viewpoint' ? 'viewpoint' : 'beach',
+            kind: t.tourism === 'viewpoint' ? 'viewpoint' : t.highway === 'trailhead' ? 'trailhead' : 'beach',
             name: t['name:en'] || t.name,
             description: t.description,
             surface: t.surface,
@@ -113,6 +114,7 @@ async function cached(key: string, area: string, signal?: AbortSignal) {
 
 function describe(p: OsmPlace) {
   if (p.kind === 'viewpoint') return p.description || 'Viewpoint'
+  if (p.kind === 'trailhead') return p.description || 'Trailhead'
   if (/^(sand|fine_sand)$/.test(p.surface ?? '')) return 'Sandy beach'
   if (/^(pebblestone|shingle|gravel|stone)$/.test(p.surface ?? '')) return 'Pebble beach'
   return 'Beach'
@@ -123,23 +125,25 @@ function toSuggestions(places: OsmPlace[], distanceOf: (p: Pt) => number, maxKm:
   for (const p of places) {
     const distanceKm = distanceOf(p)
     if (distanceKm > maxKm || !keep(p)) continue
-    const base = p.kind === 'viewpoint' ? (p.name ? 3.3 : 2.7) : p.name ? 3.3 : 2.6
+    const base = p.kind === 'beach' ? (p.name ? 3.3 : 2.6) : p.name ? 3.3 : 2.7
+    const fallback = p.kind === 'viewpoint' ? 'Viewpoint' : p.kind === 'trailhead' ? 'Trailhead' : 'Beach'
     out.push({
       id: `osm:${p.ref}`,
       source: 'osm',
       link: `https://www.openstreetmap.org/${p.ref}`,
-      title: p.name ?? (p.kind === 'viewpoint' ? 'Viewpoint' : 'Beach'),
+      title: p.name ?? fallback,
       lat: p.lat,
       lng: p.lng,
-      category: 'coast',
+      category: p.kind === 'trailhead' ? 'hikes' : 'coast',
       description: describe(p),
       distanceKm,
       score: base + 0.4 - 0.6 * Math.log10(1 + distanceKm),
     })
   }
   // Unnamed places can be numerous: keep the best 15 of them
-  const named = out.filter((s) => !['Viewpoint', 'Beach'].includes(s.title))
-  const unnamed = out.filter((s) => ['Viewpoint', 'Beach'].includes(s.title)).sort((a, b) => b.score - a.score).slice(0, 15)
+  const generic = ['Viewpoint', 'Beach', 'Trailhead']
+  const named = out.filter((s) => !generic.includes(s.title))
+  const unnamed = out.filter((s) => generic.includes(s.title)).sort((a, b) => b.score - a.score).slice(0, 15)
   return [...named, ...unnamed]
 }
 
@@ -184,15 +188,17 @@ export async function osmAlong(path: [number, number][], signal?: AbortSignal): 
  * Wikipedia one (same name, or a coast/view article within 300 m), and give
  * unnamed places a useful label from the nearest notable place.
  */
-export function mergeOsm(wiki: Suggestion[], osm: Suggestion[]): Suggestion[] {
-  const norm = (x: string) => x.toLowerCase().trim()
+export function mergeExtras(wiki: Suggestion[], extras: Suggestion[]): Suggestion[] {
+  const norm = (x: string) => x.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
   const extra: Suggestion[] = []
-  for (const o of osm) {
-    const dupe = wiki.some(
-      (w) => haversineKm(w, o) < 0.3 && (norm(w.title) === norm(o.title) || w.category === 'coast'),
-    ) || wiki.some((w) => norm(w.title) === norm(o.title) && haversineKm(w, o) < 3)
+  for (const o of extras) {
+    const sameName = (w: Suggestion) => norm(w.title) === norm(o.title)
+    const dupe =
+      wiki.some((w) => haversineKm(w, o) < 0.3 && (sameName(w) || w.category === o.category)) ||
+      wiki.some((w) => sameName(w) && (o.noMarker || haversineKm(w, o) < 3)) ||
+      extra.some((e) => sameName(e) && haversineKm(e, o) < 1)
     if (dupe) continue
-    if (o.title === 'Viewpoint' || o.title === 'Beach') {
+    if (o.title === 'Viewpoint' || o.title === 'Beach' || o.title === 'Trailhead') {
       let best: Suggestion | null = null
       let bestKm = 6
       for (const w of wiki) {

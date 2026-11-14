@@ -16,6 +16,8 @@ export interface Plan {
   sourceId?: string
   /** Info link (Wikipedia or OpenStreetMap) */
   link?: string
+  /** No exact location (e.g. a long-distance trail): not shown on the map */
+  noMarker?: boolean
   /** Saved from "along the way" on the drive to this stop, rather than near it */
   onTheWay?: boolean
   done?: boolean
