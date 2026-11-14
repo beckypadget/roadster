@@ -8,7 +8,15 @@ interface CachedLeg {
   distanceKm: number
   durationMin: number
   prefApplied: boolean
+  hasFerry?: boolean
 }
+
+export interface LegOptions {
+  pref: RoadPref
+  avoidFerries: boolean
+}
+
+export const legOptions = (s: Stop): LegOptions => ({ pref: s.arriveVia ?? 'standard', avoidFerries: !!s.avoidFerries })
 
 // ---------- Polyline decoding (Google format, precision 6 for Valhalla/OSRM polyline6) ----------
 
@@ -39,10 +47,11 @@ export function decodePolyline(str: string, precision = 6): [number, number][] {
 
 // ---------- Leg cache (memory + localStorage, so known routes work offline) ----------
 
-const CACHE_KEY = 'roadster.legcache.v1'
+const CACHE_KEY = 'roadster.legcache.v2'
 const CACHE_MAX = 150
 const cache: Map<string, CachedLeg> = (() => {
   try {
+    localStorage.removeItem('roadster.legcache.v1') // older format without ferry info
     return new Map(JSON.parse(localStorage.getItem(CACHE_KEY) || '[]'))
   } catch {
     return new Map()
@@ -58,15 +67,15 @@ function saveCache() {
   }
 }
 
-const legKey = (a: Pt, b: Pt, pref: RoadPref) =>
-  `${a.lat.toFixed(5)},${a.lng.toFixed(5)}>${b.lat.toFixed(5)},${b.lng.toFixed(5)}|${pref}`
+const legKey = (a: Pt, b: Pt, o: LegOptions) =>
+  `${a.lat.toFixed(5)},${a.lng.toFixed(5)}>${b.lat.toFixed(5)},${b.lng.toFixed(5)}|${o.pref}|${o.avoidFerries ? 'noferry' : ''}`
 
 // ---------- Routers ----------
 
 const USE_HIGHWAYS: Record<RoadPref, number> = { avoid: 0, standard: 0.5, prefer: 1 }
 
 /** Valhalla on the FOSSGIS public server: supports motorway preference. */
-async function valhalla(a: Pt, b: Pt, pref: RoadPref, signal?: AbortSignal): Promise<CachedLeg> {
+async function valhalla(a: Pt, b: Pt, o: LegOptions, signal?: AbortSignal): Promise<CachedLeg> {
   const res = await fetch('https://valhalla1.openstreetmap.de/route', {
     method: 'POST',
     signal,
@@ -74,7 +83,7 @@ async function valhalla(a: Pt, b: Pt, pref: RoadPref, signal?: AbortSignal): Pro
     body: JSON.stringify({
       locations: [{ lat: a.lat, lon: a.lng }, { lat: b.lat, lon: b.lng }],
       costing: 'auto',
-      costing_options: { auto: { use_highways: USE_HIGHWAYS[pref] } },
+      costing_options: { auto: { use_highways: USE_HIGHWAYS[o.pref], use_ferry: o.avoidFerries ? 0 : 0.5 } },
       units: 'kilometers',
       directions_type: 'none',
     }),
@@ -83,11 +92,17 @@ async function valhalla(a: Pt, b: Pt, pref: RoadPref, signal?: AbortSignal): Pro
   const data = await res.json()
   const leg = data.trip?.legs?.[0]
   if (!leg) throw new Error('Valhalla: no route')
-  return { shape: leg.shape, distanceKm: leg.summary.length, durationMin: leg.summary.time / 60, prefApplied: true }
+  return {
+    shape: leg.shape,
+    distanceKm: leg.summary.length,
+    durationMin: leg.summary.time / 60,
+    prefApplied: true,
+    hasFerry: !!leg.summary.has_ferry,
+  }
 }
 
-/** OSRM demo server: backup only, it ignores motorway preference. */
-async function osrm(a: Pt, b: Pt, pref: RoadPref, signal?: AbortSignal): Promise<CachedLeg> {
+/** OSRM demo server: backup only, it ignores motorway and ferry settings. */
+async function osrm(a: Pt, b: Pt, o: LegOptions, signal?: AbortSignal): Promise<CachedLeg> {
   const res = await fetch(
     `https://router.project-osrm.org/route/v1/driving/${a.lng},${a.lat};${b.lng},${b.lat}?overview=full&geometries=polyline6`,
     { signal },
@@ -99,19 +114,19 @@ async function osrm(a: Pt, b: Pt, pref: RoadPref, signal?: AbortSignal): Promise
     shape: route.geometry,
     distanceKm: route.distance / 1000,
     durationMin: route.duration / 60,
-    prefApplied: pref === 'standard',
+    prefApplied: o.pref === 'standard' && !o.avoidFerries,
   }
 }
 
 const isAbort = (e: unknown) => (e as Error)?.name === 'AbortError'
 
-async function routeLeg(a: Pt, b: Pt, pref: RoadPref, signal?: AbortSignal): Promise<LegInfo> {
-  const key = legKey(a, b, pref)
+async function routeLeg(a: Pt, b: Pt, o: LegOptions, signal?: AbortSignal): Promise<LegInfo> {
+  const key = legKey(a, b, o)
   let hit = cache.get(key)
   if (!hit) {
     for (const router of [valhalla, osrm]) {
       try {
-        hit = await router(a, b, pref, signal)
+        hit = await router(a, b, o, signal)
         break
       } catch (e) {
         if (isAbort(e)) throw e
@@ -134,12 +149,13 @@ async function routeLeg(a: Pt, b: Pt, pref: RoadPref, signal?: AbortSignal): Pro
     durationMin: hit.durationMin,
     estimated: false,
     prefApplied: hit.prefApplied,
+    hasFerry: hit.hasFerry,
   }
 }
 
 /** True if every leg of this trip is already cached (so no loading state is needed). */
 export function routeIsCached(stops: Stop[]) {
-  return stops.slice(1).every((s, i) => cache.has(legKey(stops[i], s, s.arriveVia ?? 'standard')))
+  return stops.slice(1).every((s, i) => cache.has(legKey(stops[i], s, legOptions(s))))
 }
 
 /**
@@ -154,7 +170,7 @@ export async function getRoute(stops: Stop[], signal?: AbortSignal): Promise<Rou
     while (next < pairs.length) {
       const i = next++
       const [a, b] = pairs[i]
-      legs[i] = await routeLeg(a, b, b.arriveVia ?? 'standard', signal)
+      legs[i] = await routeLeg(a, b, legOptions(b), signal)
     }
   }
   await Promise.all([worker(), worker()])

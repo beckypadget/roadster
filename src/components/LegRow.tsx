@@ -4,10 +4,12 @@ import type { LegInfo, RoadPref } from '../types'
 interface Props {
   leg: LegInfo | undefined
   pref: RoadPref
+  avoidFerries: boolean
   loading: boolean
   units: 'km' | 'mi'
   toName: string
   onChange: (p: RoadPref) => void
+  onAvoidFerriesChange: (v: boolean) => void
 }
 
 const OPTIONS: { value: RoadPref; label: string }[] = [
@@ -16,7 +18,7 @@ const OPTIONS: { value: RoadPref; label: string }[] = [
   { value: 'prefer', label: 'Prefer' },
 ]
 
-export function LegRow({ leg, pref, loading, units, toName, onChange }: Props) {
+export function LegRow({ leg, pref, avoidFerries, loading, units, toName, onChange, onAvoidFerriesChange }: Props) {
   const dist = leg ? (units === 'mi' ? leg.distanceKm * 0.621371 : leg.distanceKm) : null
 
   return (
@@ -30,6 +32,7 @@ export function LegRow({ leg, pref, loading, units, toName, onChange }: Props) {
             <>
               <span><strong>{Math.round(dist!).toLocaleString()}</strong> {units}</span>
               {leg.durationMin != null && <span>{formatDuration(leg.durationMin)}</span>}
+              {leg.hasFerry && <span className="ferry-badge">⛴ {avoidFerries ? 'Ferry needed' : 'Includes a ferry'}</span>}
               {leg.estimated && <span className="hint">straight line, routing unavailable</span>}
             </>
           )}
@@ -49,8 +52,15 @@ export function LegRow({ leg, pref, loading, units, toName, onChange }: Props) {
             </button>
           ))}
         </div>
+        <label className="check">
+          <input type="checkbox" checked={avoidFerries} onChange={(e) => onAvoidFerriesChange(e.target.checked)} />
+          Avoid ferries
+        </label>
+        {leg && avoidFerries && leg.hasFerry && (
+          <p className="hint">There’s no reasonable way to get here without a ferry.</p>
+        )}
         {leg && !leg.estimated && !leg.prefApplied && (
-          <p className="hint">The motorway setting couldn’t be applied just now (routing service busy). Showing the standard route.</p>
+          <p className="hint">Your route settings couldn’t be applied just now (routing service busy). Showing the standard route.</p>
         )}
       </div>
     </div>

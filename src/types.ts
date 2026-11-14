@@ -10,6 +10,8 @@ export interface Stop {
   notes: string
   /** Motorway preference for the drive *to* this stop. Missing means 'standard'. */
   arriveVia?: RoadPref
+  /** Avoid ferries on the drive to this stop (used anyway if there's no other way) */
+  avoidFerries?: boolean
 }
 
 export interface Trip {
@@ -29,6 +31,8 @@ export interface LegInfo {
   estimated: boolean
   /** false when the backup router was used and the motorway setting couldn't be applied */
   prefApplied: boolean
+  /** Whether the route uses a ferry (unknown when the backup router was used) */
+  hasFerry?: boolean
 }
 
 export interface RouteInfo {

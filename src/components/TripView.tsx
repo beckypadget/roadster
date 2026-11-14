@@ -133,10 +133,12 @@ export function TripView({ trip, route, routeLoading, units, onChange, onDelete,
                     <LegRow
                       leg={route?.legs[i - 1]}
                       pref={s.arriveVia ?? 'standard'}
+                      avoidFerries={!!s.avoidFerries}
                       loading={routeLoading && !route?.legs[i - 1]}
                       units={units}
                       toName={s.name}
                       onChange={(p: RoadPref) => updateStop(s.id, { arriveVia: p })}
+                      onAvoidFerriesChange={(v) => updateStop(s.id, { avoidFerries: v })}
                     />
                   ) : undefined
                 }

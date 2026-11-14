@@ -25,7 +25,7 @@ export default function App() {
 
   const trip = page.page === 'trip' ? (trips.find((t) => t.id === page.id) ?? null) : null
   // Only re-route when stop positions/order or motorway settings change, not on note edits
-  const routeKey = trip?.stops.map((s) => `${s.lat},${s.lng},${s.arriveVia ?? ''}`).join('|') ?? ''
+  const routeKey = trip?.stops.map((s) => `${s.lat},${s.lng},${s.arriveVia ?? ''},${s.avoidFerries ? 1 : 0}`).join('|') ?? ''
 
   useEffect(() => {
     if (!trip || trip.stops.length < 2) {
