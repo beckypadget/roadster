@@ -24,6 +24,7 @@ interface Props {
   onBack: () => void
   onSuggestions: (list: Suggestion[]) => void
   onFocus: (p: { lat: number; lng: number; title: string } | null) => void
+  onPreviewRoutes: (paths: [number, number][][]) => void
 }
 
 /** Drop where the pointer/finger is; fall back to nearest card (e.g. keyboard dragging). */
@@ -38,7 +39,7 @@ function addDays(iso: string, days: number) {
   return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
 }
 
-export function TripView({ trip, route, routeLoading, units, onChange, onDelete, onBack, onSuggestions, onFocus }: Props) {
+export function TripView({ trip, route, routeLoading, units, onChange, onDelete, onBack, onSuggestions, onFocus, onPreviewRoutes }: Props) {
   const setStops = (stops: Stop[]) => onChange({ ...trip, stops })
   const updateStop = (id: string, patch: Partial<Stop>) =>
     setStops(trip.stops.map((s) => (s.id === id ? { ...s, ...patch } : s)))
@@ -168,6 +169,10 @@ export function TripView({ trip, route, routeLoading, units, onChange, onDelete,
                       toName={s.name}
                       onChange={(p: RoadPref) => updateStop(s.id, { arriveVia: p })}
                       onAvoidFerriesChange={(v) => updateStop(s.id, { avoidFerries: v })}
+                      from={trip.stops[i - 1]}
+                      to={s}
+                      onRouteChange={(patch) => updateStop(s.id, patch)}
+                      onPreviewRoutes={onPreviewRoutes}
                       discoverOpen={discover?.mode === 'leg' && discover.stopId === s.id}
                       onToggleDiscover={() => toggleDiscover('leg', s.id)}
                       discover={

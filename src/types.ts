@@ -34,6 +34,10 @@ export interface Stop {
   arriveVia?: RoadPref
   /** Avoid ferries on the drive to this stop (used anyway if there's no other way) */
   avoidFerries?: boolean
+  /** Avoid roads already driven on earlier legs (no out-and-back) */
+  avoidRetrace?: boolean
+  /** Chosen route for the drive here: 0 = suggested, 1+ = alternatives */
+  routeChoice?: number
   /** Things to see and do at or on the way to this stop */
   plans?: Plan[]
 }
@@ -57,6 +61,15 @@ export interface LegInfo {
   prefApplied: boolean
   /** Whether the route uses a ferry (unknown when the backup router was used) */
   hasFerry?: boolean
+  /** km of this leg that repeats roads from earlier legs */
+  retraceKm: number
+  /** Set when "avoid retracing" is on: whether a different road was found */
+  retraceAvoided?: 'yes' | 'no-alternative'
+  /** Distance/time of the normal route, to show what avoiding retracing costs */
+  normalDistanceKm?: number
+  normalDurationMin?: number | null
+  /** Set when an alternative was chosen but isn't available any more */
+  choiceMissing?: boolean
 }
 
 export interface RouteInfo {

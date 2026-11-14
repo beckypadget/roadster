@@ -72,6 +72,8 @@ interface Props {
   suggestions: Suggestion[]
   focus: (Pt & { title: string }) | null
   onAddStop: (p: AddPlace) => void
+  /** Alternative routes being compared, drawn faintly under the route */
+  previewRoutes: [number, number][][]
 }
 
 type Layers = { parking: boolean; van: boolean }
@@ -84,7 +86,7 @@ const loadLayers = (): Layers => {
   }
 }
 
-export function TripMap({ stops, route, suggestions, focus, onAddStop }: Props) {
+export function TripMap({ stops, route, suggestions, focus, onAddStop, previewRoutes }: Props) {
   const [layers, setLayers] = useState<Layers>(loadLayers)
   const [parkStatus, setParkStatus] = useState<LayerStatus>(null)
   const [vanStatus, setVanStatus] = useState<LayerStatus>(null)
@@ -116,6 +118,9 @@ export function TripMap({ stops, route, suggestions, focus, onAddStop }: Props) 
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
+      {previewRoutes.map((p, i) => (
+        <Polyline key={`alt-${i}-${p.length}`} positions={p} className="alt-line" pathOptions={{ weight: 7, opacity: 0.55, dashArray: '2 9', lineCap: 'round' }} />
+      ))}
       {route?.legs.map((leg, i) => (
         <Polyline
           key={`${i}-${leg.path.length}-${leg.distanceKm}`}

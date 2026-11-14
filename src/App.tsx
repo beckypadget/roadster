@@ -27,10 +27,12 @@ export default function App() {
   // Suggestions currently shown in a Discover panel, and the place to centre the map on
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
   const [focus, setFocus] = useState<{ lat: number; lng: number; title: string } | null>(null)
+  // Alternative routes being compared for one leg, drawn faintly on the map
+  const [previewRoutes, setPreviewRoutes] = useState<[number, number][][]>([])
 
   const trip = page.page === 'trip' ? (trips.find((t) => t.id === page.id) ?? null) : null
   // Only re-route when stop positions/order or motorway settings change, not on note edits
-  const routeKey = trip?.stops.map((s) => `${s.lat},${s.lng},${s.arriveVia ?? ''},${s.avoidFerries ? 1 : 0}`).join('|') ?? ''
+  const routeKey = trip?.stops.map((s) => `${s.lat},${s.lng},${s.arriveVia ?? ''},${s.avoidFerries ? 1 : 0},${s.avoidRetrace ? 1 : 0},${s.routeChoice ?? 0}`).join('|') ?? ''
 
   useEffect(() => {
     if (!trip || trip.stops.length < 2) {
@@ -77,6 +79,7 @@ export default function App() {
               onBack={() => go({ page: 'home' })}
               onSuggestions={setSuggestions}
               onFocus={setFocus}
+              onPreviewRoutes={setPreviewRoutes}
             />
           </section>
           <section className="map-wrap">
@@ -85,6 +88,7 @@ export default function App() {
               route={route}
               suggestions={suggestions}
               focus={focus}
+              previewRoutes={previewRoutes}
               onAddStop={(p) => {
                 // Insert after the nearest existing stop (drag to adjust)
                 const stops = trip.stops
