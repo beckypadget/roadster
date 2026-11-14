@@ -1,0 +1,10 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "roadster",
+  "compatibility_date": "2026-11-01",
+  // Static site: serve the Vite build output. No Worker script needed.
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}
