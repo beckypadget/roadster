@@ -369,3 +369,11 @@ button.start-date:hover { background: var(--accent-soft); color: var(--text); }
 .start-date.editing { cursor: default; }
 .start-date.editing input { width: auto; padding: 4px 8px; font-size: 0.85rem; }
 .muted-link { color: var(--muted); font-weight: 400; }
+
+/* Nights stepper: − n + */
+.stepper { display: inline-flex; align-items: stretch; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.stepper button { width: 32px; border: none; background: transparent; color: var(--text); font-size: 1.05rem; cursor: pointer; }
+.stepper button:hover:not(:disabled) { background: var(--accent-soft); }
+.stepper button:disabled { color: var(--border); cursor: default; }
+.field.inline .stepper input { width: 38px; text-align: center; border: none; border-radius: 0; padding: 5px 0; background: transparent; }
+.stepper input:focus { outline: none; background: var(--accent-soft); }

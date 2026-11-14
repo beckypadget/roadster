@@ -2,6 +2,7 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { ReactNode } from 'react'
 import type { Stop } from '../types'
+import { NightsStepper } from './NightsStepper'
 
 interface Props {
   stop: Stop
@@ -69,15 +70,10 @@ export function StopCard({ stop, index, count, arrival, leg, plans, discoverOpen
         </div>
         {arrival && <div className="hint">Arrive {arrival}</div>}
         <div className="row">
-          <label className="field inline">
+          <span className="field inline">
             Nights
-            <input
-              type="number"
-              min={0}
-              value={stop.nights}
-              onChange={(e) => onUpdate({ nights: Math.max(0, Number(e.target.value) || 0) })}
-            />
-          </label>
+            <NightsStepper value={stop.nights} label={`Nights in ${stop.name}`} onChange={(nights) => onUpdate({ nights })} />
+          </span>
         </div>
         <textarea
           placeholder="Notes: where to stay, what to see…"
