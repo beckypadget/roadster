@@ -5,6 +5,7 @@ import { TripView } from './components/TripView'
 import { getRoute, routeIsCached } from './routing'
 import { samplePacificCoastStops } from './sampleTrip'
 import { useTrips } from './storage'
+import type { Suggestion } from './discover'
 import type { RouteInfo } from './types'
 import { useHashRoute } from './useHashRoute'
 
@@ -22,6 +23,9 @@ export default function App() {
   const [route, setRoute] = useState<RouteInfo | null>(null)
   const [routeLoading, setRouteLoading] = useState(false)
   const [units, setUnits] = useState(defaultUnits)
+  // Suggestions currently shown in a Discover panel, and the place to centre the map on
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([])
+  const [focus, setFocus] = useState<{ lat: number; lng: number; title: string } | null>(null)
 
   const trip = page.page === 'trip' ? (trips.find((t) => t.id === page.id) ?? null) : null
   // Only re-route when stop positions/order or motorway settings change, not on note edits
@@ -70,10 +74,12 @@ export default function App() {
               onChange={updateTrip}
               onDelete={() => { deleteTrip(trip.id); go({ page: 'home' }) }}
               onBack={() => go({ page: 'home' })}
+              onSuggestions={setSuggestions}
+              onFocus={setFocus}
             />
           </section>
           <section className="map-wrap">
-            <TripMap stops={trip.stops} route={route} />
+            <TripMap stops={trip.stops} route={route} suggestions={suggestions} focus={focus} />
           </section>
         </main>
       ) : (

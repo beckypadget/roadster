@@ -254,3 +254,60 @@ body:has(.drag-overlay) { cursor: grabbing; }
 .steps li:nth-child(3) .step-num { background: var(--mustard); color: #2a2119; }
 .sample { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 20px; color: var(--muted); }
 .sample p { margin: 0; }
+
+/* ---------- Discover: suggestions and saved plans ---------- */
+.leg-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.discover-btn {
+  align-self: flex-start; border: 1px dashed var(--accent); background: transparent; color: var(--accent);
+  border-radius: 999px; padding: 5px 12px; font-size: 0.82rem; font-weight: 600; cursor: pointer;
+}
+.discover-btn:hover, .discover-btn.on { background: var(--accent-soft); border-style: solid; }
+.discover-btn:disabled { opacity: 0.4; cursor: default; }
+.link { border: none; background: none; padding: 0; color: var(--accent); font-weight: 600; cursor: pointer; font-size: inherit; }
+
+.discover {
+  display: flex; flex-direction: column; gap: 10px;
+  background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px;
+}
+.discover-title { font-size: 0.95rem; }
+.discover-wrap { margin-top: 6px; }
+.filter-chips { margin: 0; }
+.chip-btn {
+  border: 1px solid var(--border); background: var(--surface); color: var(--text);
+  border-radius: 999px; padding: 4px 10px; font-size: 0.78rem; cursor: pointer; white-space: nowrap;
+}
+.chip-btn.on { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.suggestions { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.suggestion { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+.sugg-main { display: flex; gap: 10px; text-align: left; border: none; background: none; padding: 0; cursor: pointer; color: inherit; }
+.sugg-img { flex: 0 0 64px; width: 64px; height: 64px; border-radius: 8px; object-fit: cover; background: var(--camel-soft); }
+.sugg-icon { display: grid; place-items: center; font-size: 1.6rem; }
+.sugg-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sugg-text strong { font-size: 0.92rem; line-height: 1.25; }
+.sugg-desc { color: var(--muted); font-size: 0.8rem; line-height: 1.3; }
+.sugg-meta { font-size: 0.75rem; color: var(--accent); font-weight: 600; }
+.sugg-extract { margin: 0; font-size: 0.82rem; line-height: 1.45; color: var(--text); }
+.sugg-extract a { color: var(--accent); white-space: nowrap; }
+.sugg-actions { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; }
+.sugg-actions .spacer { flex: 1; }
+.sugg-actions .btn.small { padding: 4px 10px; font-size: 0.78rem; }
+.saved { color: var(--olive); font-weight: 600; }
+.more { align-self: center; }
+.attribution { font-size: 0.72rem; text-align: center; }
+
+.plan-section { display: flex; flex-direction: column; gap: 4px; }
+.plan-heading { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+.plans { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.plans li { display: flex; align-items: center; gap: 8px; padding: 2px 0; }
+.plans input[type='checkbox'] { width: 16px; height: 16px; margin: 0; padding: 0; flex: 0 0 auto; accent-color: var(--accent); }
+.plan-name { flex: 1; min-width: 0; text-align: left; border: none; background: none; padding: 4px 0; cursor: pointer; color: inherit; font-size: 0.88rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.plans li.done .plan-name { text-decoration: line-through; color: var(--muted); }
+.plans .icon { width: 28px; height: 28px; display: grid; place-items: center; text-decoration: none; }
+
+/* Map markers for suggestions (cream) and saved plans (rust ring) */
+.poi {
+  width: 100%; height: 100%; border-radius: 50%; display: grid; place-items: center; font-size: 14px;
+  background: #fbf7f0; border: 2px solid #c9b49a; box-shadow: 0 1px 4px rgba(51, 41, 31, 0.3);
+}
+.poi-plan { border-color: #a14b2b; border-width: 3px; }
+.poi-focus { font-size: 18px; border-color: #6b2a2a; border-width: 3px; }

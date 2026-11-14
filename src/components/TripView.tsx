@@ -6,7 +6,10 @@ import {
 } from '@dnd-kit/core'
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useState } from 'react'
-import type { RoadPref, RouteInfo, Stop, Trip } from '../types'
+import type { Suggestion } from '../discover'
+import type { Plan, RoadPref, RouteInfo, Stop, Trip } from '../types'
+import { Discover } from './Discover'
+import { PlanList } from './PlanList'
 import { LegRow } from './LegRow'
 import { GripIcon, StopCard } from './StopCard'
 import { StopSearch } from './StopSearch'
@@ -19,6 +22,8 @@ interface Props {
   onChange: (t: Trip) => void
   onDelete: () => void
   onBack: () => void
+  onSuggestions: (list: Suggestion[]) => void
+  onFocus: (p: { lat: number; lng: number; title: string } | null) => void
 }
 
 /** Drop where the pointer/finger is; fall back to nearest card (e.g. keyboard dragging). */
@@ -33,7 +38,7 @@ function addDays(iso: string, days: number) {
   return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
 }
 
-export function TripView({ trip, route, routeLoading, units, onChange, onDelete, onBack }: Props) {
+export function TripView({ trip, route, routeLoading, units, onChange, onDelete, onBack, onSuggestions, onFocus }: Props) {
   const setStops = (stops: Stop[]) => onChange({ ...trip, stops })
   const updateStop = (id: string, patch: Partial<Stop>) =>
     setStops(trip.stops.map((s) => (s.id === id ? { ...s, ...patch } : s)))
@@ -67,6 +72,30 @@ export function TripView({ trip, route, routeLoading, units, onChange, onDelete,
 
   const addStop = (p: PlaceResult) =>
     setStops([...trip.stops, { id: crypto.randomUUID(), name: p.name, lat: p.lat, lng: p.lng, nights: 0, notes: '' }])
+
+  // Discover: one panel open at a time, either near a stop or along the leg to it
+  const [discover, setDiscover] = useState<{ mode: 'stop' | 'leg'; stopId: string } | null>(null)
+  const toggleDiscover = (mode: 'stop' | 'leg', stopId: string) =>
+    setDiscover((d) => (d?.mode === mode && d.stopId === stopId ? null : { mode, stopId }))
+  const savedTitles = new Set([...trip.stops.map((s) => s.name), ...trip.stops.flatMap((s) => (s.plans ?? []).map((p) => p.title))])
+
+  const addPlan = (stopId: string, s: Suggestion, onTheWay: boolean) => {
+    const plan: Plan = {
+      id: crypto.randomUUID(), title: s.title, lat: s.lat, lng: s.lng, category: s.category,
+      description: s.description, thumbnail: s.thumbnail, onTheWay,
+    }
+    setStops(trip.stops.map((x) => (x.id === stopId ? { ...x, plans: [...(x.plans ?? []), plan] } : x)))
+  }
+  const updatePlans = (stopId: string, fn: (plans: Plan[]) => Plan[]) =>
+    setStops(trip.stops.map((x) => (x.id === stopId ? { ...x, plans: fn(x.plans ?? []) } : x)))
+  /** Insert a suggestion as a new stop at `index` */
+  const addSuggestionAsStop = (s: Suggestion, index: number) => {
+    const stop: Stop = { id: crypto.randomUUID(), name: s.title, lat: s.lat, lng: s.lng, nights: 0, notes: s.description }
+    const next = [...trip.stops]
+    next.splice(index, 0, stop)
+    setStops(next)
+    setDiscover(null)
+  }
 
   const totalNights = trip.stops.reduce((n, s) => n + s.nights, 0)
   const dist = route ? (units === 'mi' ? route.distanceKm * 0.621371 : route.distanceKm) : 0
@@ -139,8 +168,50 @@ export function TripView({ trip, route, routeLoading, units, onChange, onDelete,
                       toName={s.name}
                       onChange={(p: RoadPref) => updateStop(s.id, { arriveVia: p })}
                       onAvoidFerriesChange={(v) => updateStop(s.id, { avoidFerries: v })}
+                      discoverOpen={discover?.mode === 'leg' && discover.stopId === s.id}
+                      onToggleDiscover={() => toggleDiscover('leg', s.id)}
+                      discover={
+                        <Discover
+                          mode="leg"
+                          path={route?.legs[i - 1]?.path}
+                          placeName={s.name}
+                          units={units}
+                          savedTitles={savedTitles}
+                          onAddPlan={(sg) => addPlan(s.id, sg, true)}
+                          onAddStop={(sg) => addSuggestionAsStop(sg, i)}
+                          onResults={onSuggestions}
+                          onFocus={(sg) => onFocus({ lat: sg.lat, lng: sg.lng, title: sg.title })}
+                          onClose={() => setDiscover(null)}
+                        />
+                      }
                     />
                   ) : undefined
+                }
+                plans={
+                  s.plans?.length ? (
+                    <PlanList
+                      plans={s.plans}
+                      onToggleDone={(id) => updatePlans(s.id, (ps) => ps.map((p) => (p.id === id ? { ...p, done: !p.done } : p)))}
+                      onRemove={(id) => updatePlans(s.id, (ps) => ps.filter((p) => p.id !== id))}
+                      onFocus={(p) => onFocus({ lat: p.lat, lng: p.lng, title: p.title })}
+                    />
+                  ) : undefined
+                }
+                discoverOpen={discover?.mode === 'stop' && discover.stopId === s.id}
+                onToggleDiscover={() => toggleDiscover('stop', s.id)}
+                discover={
+                  <Discover
+                    mode="stop"
+                    center={s}
+                    placeName={s.name}
+                    units={units}
+                    savedTitles={savedTitles}
+                    onAddPlan={(sg) => addPlan(s.id, sg, false)}
+                    onAddStop={(sg) => addSuggestionAsStop(sg, i + 1)}
+                    onResults={onSuggestions}
+                    onFocus={(sg) => onFocus({ lat: sg.lat, lng: sg.lng, title: sg.title })}
+                    onClose={() => setDiscover(null)}
+                  />
                 }
                 onUpdate={(patch) => updateStop(s.id, patch)}
                 onMove={(dir) => move(i, dir)}

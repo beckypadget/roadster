@@ -10,6 +10,12 @@ interface Props {
   arrival: string | null
   /** The leg row for the drive to this stop (moves with the stop when dragged) */
   leg?: ReactNode
+  /** Saved plans list (rendered under notes) */
+  plans?: ReactNode
+  discoverOpen: boolean
+  onToggleDiscover: () => void
+  /** The Discover panel for this stop, when open */
+  discover?: ReactNode
   onUpdate: (patch: Partial<Stop>) => void
   onMove: (dir: -1 | 1) => void
   onRemove: () => void
@@ -28,7 +34,7 @@ export function GripIcon() {
   )
 }
 
-export function StopCard({ stop, index, count, arrival, leg, onUpdate, onMove, onRemove }: Props) {
+export function StopCard({ stop, index, count, arrival, leg, plans, discoverOpen, onToggleDiscover, discover, onUpdate, onMove, onRemove }: Props) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
     id: stop.id,
   })
@@ -79,8 +85,18 @@ export function StopCard({ stop, index, count, arrival, leg, onUpdate, onMove, o
           rows={stop.notes ? 2 : 1}
           onChange={(e) => onUpdate({ notes: e.target.value })}
         />
+        {plans}
+        <button
+          type="button"
+          className={`discover-btn${discoverOpen ? ' on' : ''}`}
+          aria-expanded={discoverOpen}
+          onClick={onToggleDiscover}
+        >
+          ✨ Things to do nearby
+        </button>
       </div>
       </div>
+      {discoverOpen && <div className="discover-wrap">{discover}</div>}
     </li>
   )
 }

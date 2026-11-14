@@ -1,5 +1,21 @@
+import type { Category } from './discover'
+
 /** How to drive a leg: Valhalla's use_highways 0 / 0.5 / 1 */
 export type RoadPref = 'avoid' | 'standard' | 'prefer'
+
+/** A place you want to visit, saved against a stop */
+export interface Plan {
+  id: string
+  title: string
+  lat: number
+  lng: number
+  category: Category
+  description: string
+  thumbnail?: string
+  /** Saved from "along the way" on the drive to this stop, rather than near it */
+  onTheWay?: boolean
+  done?: boolean
+}
 
 export interface Stop {
   id: string
@@ -12,6 +28,8 @@ export interface Stop {
   arriveVia?: RoadPref
   /** Avoid ferries on the drive to this stop (used anyway if there's no other way) */
   avoidFerries?: boolean
+  /** Things to see and do at or on the way to this stop */
+  plans?: Plan[]
 }
 
 export interface Trip {

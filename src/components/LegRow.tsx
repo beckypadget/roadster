@@ -1,4 +1,5 @@
 import { formatDuration } from '../geo'
+import type { ReactNode } from 'react'
 import type { LegInfo, RoadPref } from '../types'
 
 interface Props {
@@ -10,6 +11,10 @@ interface Props {
   toName: string
   onChange: (p: RoadPref) => void
   onAvoidFerriesChange: (v: boolean) => void
+  discoverOpen: boolean
+  onToggleDiscover: () => void
+  /** The Discover panel, rendered under the leg when open */
+  discover?: ReactNode
 }
 
 const OPTIONS: { value: RoadPref; label: string }[] = [
@@ -18,7 +23,7 @@ const OPTIONS: { value: RoadPref; label: string }[] = [
   { value: 'prefer', label: 'Prefer' },
 ]
 
-export function LegRow({ leg, pref, avoidFerries, loading, units, toName, onChange, onAvoidFerriesChange }: Props) {
+export function LegRow({ leg, pref, avoidFerries, loading, units, toName, onChange, onAvoidFerriesChange, discoverOpen, onToggleDiscover, discover }: Props) {
   const dist = leg ? (units === 'mi' ? leg.distanceKm * 0.621371 : leg.distanceKm) : null
 
   return (
@@ -52,16 +57,28 @@ export function LegRow({ leg, pref, avoidFerries, loading, units, toName, onChan
             </button>
           ))}
         </div>
-        <label className="check">
-          <input type="checkbox" checked={avoidFerries} onChange={(e) => onAvoidFerriesChange(e.target.checked)} />
-          Avoid ferries
-        </label>
+        <div className="leg-tools">
+          <label className="check">
+            <input type="checkbox" checked={avoidFerries} onChange={(e) => onAvoidFerriesChange(e.target.checked)} />
+            Avoid ferries
+          </label>
+          <button
+            type="button"
+            className={`discover-btn${discoverOpen ? ' on' : ''}`}
+            aria-expanded={discoverOpen}
+            disabled={!leg || leg.estimated}
+            onClick={onToggleDiscover}
+          >
+            ✨ Places on the way
+          </button>
+        </div>
         {leg && avoidFerries && leg.hasFerry && (
           <p className="hint">There’s no reasonable way to get here without a ferry.</p>
         )}
         {leg && !leg.estimated && !leg.prefApplied && (
           <p className="hint">Your route settings couldn’t be applied just now (routing service busy). Showing the standard route.</p>
         )}
+        {discoverOpen && discover}
       </div>
     </div>
   )
