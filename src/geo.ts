@@ -1,26 +1,5 @@
 import type { RouteInfo, Stop } from './types'
 
-export interface PlaceResult {
-  name: string
-  fullName: string
-  lat: number
-  lng: number
-}
-
-/** Place search via OpenStreetMap Nominatim (free; keep to ~1 request/second). */
-export async function searchPlaces(query: string, signal?: AbortSignal): Promise<PlaceResult[]> {
-  const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&q=${encodeURIComponent(query)}`
-  const res = await fetch(url, { signal, headers: { Accept: 'application/json' } })
-  if (!res.ok) throw new Error(`Search failed (${res.status})`)
-  const data = (await res.json()) as { name: string; display_name: string; lat: string; lon: string }[]
-  return data.map((d) => ({
-    name: d.name || d.display_name.split(',')[0],
-    fullName: d.display_name,
-    lat: Number(d.lat),
-    lng: Number(d.lon),
-  }))
-}
-
 export function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
   const R = 6371
   const toRad = (x: number) => (x * Math.PI) / 180

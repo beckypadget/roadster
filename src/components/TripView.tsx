@@ -1,4 +1,4 @@
-import type { PlaceResult } from '../geo'
+import type { PlaceResult } from '../search'
 import { formatDuration } from '../geo'
 import type { RouteInfo, Stop, Trip } from '../types'
 import { StopSearch } from './StopSearch'
@@ -76,7 +76,7 @@ export function TripView({ trip, route, routeLoading, units, onChange, onDelete,
         </div>
       )}
 
-      <StopSearch onAdd={addStop} />
+      <StopSearch stops={trip.stops} units={units} onAdd={addStop} />
 
       <ol className="stops">
         {trip.stops.map((s, i) => (

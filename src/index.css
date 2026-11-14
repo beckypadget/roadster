@@ -126,6 +126,8 @@ textarea { resize: vertical; }
 .trips button:hover, .results button:hover { border-color: var(--accent); }
 .trips span, .results span { color: var(--muted); font-size: 0.85rem; }
 .results span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.result-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.results .result-dist { flex-shrink: 0; color: var(--accent); font-size: 0.78rem; font-weight: 600; white-space: nowrap; }
 .search { display: flex; flex-direction: column; gap: 8px; }
 
 .summary {
