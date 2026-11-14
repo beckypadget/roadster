@@ -33,7 +33,8 @@ export function TripMap({ stops, route }: { stops: Stop[]; route: RouteInfo | nu
       {route && route.path.length > 1 && (
         <Polyline
           positions={route.path}
-          pathOptions={{ color: '#E8590C', weight: 5, opacity: 0.85, dashArray: route.estimated ? '8 8' : undefined }}
+          className="route-line"
+          pathOptions={{ weight: 5, opacity: 0.9, dashArray: route.estimated ? '8 8' : undefined }}
         />
       )}
       {stops.map((s, i) => (

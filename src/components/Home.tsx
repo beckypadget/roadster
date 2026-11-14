@@ -15,9 +15,15 @@ function formatDate(iso: string) {
 function RoadArt() {
   return (
     <svg className="hero-art" viewBox="0 0 320 200" aria-hidden="true">
-      <circle cx="250" cy="58" r="30" className="art-sun" />
-      <path d="M0 130 L70 80 L120 112 L190 60 L260 104 L320 74 V200 H0 Z" className="art-hills-back" />
-      <path d="M0 150 L90 118 L170 146 L250 120 L320 140 V200 H0 Z" className="art-hills" />
+      <circle cx="248" cy="56" r="28" className="art-sun" />
+      <path d="M0 122 L64 76 L118 108 L186 58 L254 100 L320 70 V200 H0 Z" className="art-hills-back" />
+      <path d="M0 142 L80 108 L150 134 L232 102 L320 128 V200 H0 Z" className="art-hills" />
+      <path d="M0 168 L70 146 L150 166 L240 140 L320 160 V200 H0 Z" className="art-hills-near" />
+      <g className="art-tree">
+        <path d="M58 150 L68 120 L78 150 Z" />
+        <path d="M76 148 L84 126 L92 148 Z" />
+        <path d="M262 146 L272 114 L282 146 Z" />
+      </g>
       <path d="M150 200 C150 170 175 150 210 140 C235 133 250 128 262 120 L268 122 C258 132 245 140 222 150 C190 164 178 180 182 200 Z" className="art-road" />
       <path d="M166 196 C168 182 178 170 194 162 M206 154 C218 148 230 143 240 137" className="art-lines" />
     </svg>

@@ -1,13 +1,28 @@
 :root {
-  --bg: #fff8f0;
-  --surface: #ffffff;
-  --text: #2b2b2b;
-  --muted: #6b6560;
-  --border: #eadfd3;
-  --accent: #e8590c;
-  --accent-text: #ffffff;
-  --accent-soft: #fff0e3;
-  --danger: #c92a2a;
+  /* Soft / dark autumn palette with teals */
+  --bg: #f3ece0;          /* oat */
+  --surface: #fbf7f0;     /* cream */
+  --text: #33291f;        /* espresso */
+  --muted: #76685a;       /* taupe */
+  --border: #e0d4c2;
+  --accent: #a14b2b;      /* rust */
+  --accent-text: #fff8ee;
+  --accent-soft: #f0e0d0; /* peach-camel */
+  --teal: #2c5f5c;        /* deep teal */
+  --teal-soft: #dce7e2;   /* misty teal */
+  --sage: #8a9a78;
+  --mustard: #c79a3e;
+  --plum: #7a4a52;
+  --danger: #9e3b33;
+  --header-bg: var(--teal);
+  --header-text: #f6efe3;
+  --pin-border: #fbf7f0;
+  --shadow: rgba(51, 41, 31, 0.12);
+  --art-sun: #d9a94a;
+  --art-far: #a9bfb3;
+  --art-mid: #c98f65;
+  --art-near: #a14b2b;
+  --art-road: #33291f;
   --radius: 12px;
   color-scheme: light dark;
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -16,15 +31,29 @@
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #1b1917;
-    --surface: #262320;
-    --text: #f1ece6;
-    --muted: #a69d94;
-    --border: #3a3530;
-    --accent: #ff7a2e;
-    --accent-text: #1b1917;
-    --accent-soft: #3a2a1e;
-    --danger: #ff6b6b;
+    --bg: #1d1915;
+    --surface: #29231d;
+    --text: #ede3d3;
+    --muted: #ae9f8b;
+    --border: #3d342b;
+    --accent: #d07a52;    /* lit terracotta */
+    --accent-text: #1d1915;
+    --accent-soft: #3b2b21;
+    --teal: #7db5ac;
+    --teal-soft: #213330;
+    --sage: #8f9f7d;
+    --mustard: #d4a84f;
+    --plum: #b07a82;
+    --danger: #e58a7c;
+    --header-bg: #1f3a38;
+    --header-text: #ede3d3;
+    --pin-border: #29231d;
+    --shadow: rgba(0, 0, 0, 0.35);
+    --art-sun: #d4a84f;
+    --art-far: #2f4a46;
+    --art-mid: #6b4430;
+    --art-near: #a8583a;
+    --art-road: #12100d;
   }
 }
 * { box-sizing: border-box; }
@@ -36,8 +65,10 @@ button, input, textarea { font: inherit; color: inherit; }
 .topbar {
   display: flex; align-items: center; justify-content: space-between;
   padding: calc(env(safe-area-inset-top) + 10px) 16px 10px;
-  background: var(--surface); border-bottom: 1px solid var(--border);
+  background: var(--header-bg); color: var(--header-text);
 }
+.topbar .btn.small { color: var(--header-text); border-color: color-mix(in srgb, var(--header-text) 40%, transparent); }
+.topbar .btn.small:hover { background: color-mix(in srgb, var(--header-text) 12%, transparent); }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.15rem; }
 
 /* Phone: map on top, planner below */
@@ -97,7 +128,7 @@ textarea { resize: vertical; }
 
 .summary {
   display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 12px 14px;
-  background: var(--accent-soft); border-radius: var(--radius); font-size: 0.9rem;
+  background: var(--teal-soft); border-radius: var(--radius); font-size: 0.9rem;
 }
 
 .stop { display: flex; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; }
@@ -116,11 +147,13 @@ textarea { resize: vertical; }
 
 /* Numbered map pins */
 .pin {
-  width: 28px; height: 28px; border-radius: 50%; background: #e8590c; color: #fff;
-  border: 3px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.4);
+  width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: var(--accent-text);
+  border: 3px solid var(--pin-border); box-shadow: 0 1px 4px var(--shadow);
   display: grid; place-items: center; font: 700 12px system-ui, sans-serif;
 }
-.pin-end { background: #2b2b2b; }
+/* Map tiles are always light, so map colours don't switch with dark mode */
+.pin-end { background: #2c5f5c; color: #fbf7f0; }
+.route-line { stroke: #2c5f5c; }
 
 /* ---------- Home page ---------- */
 .brand { color: inherit; text-decoration: none; }
@@ -143,15 +176,13 @@ textarea { resize: vertical; }
 @media (min-width: 720px) {
   .hero { grid-template-columns: 1.3fr 1fr; padding: 40px; }
 }
-.art-sun { fill: #ffd43b; }
-.art-hills-back { fill: #f4c7a1; }
-.art-hills { fill: #e8590c; opacity: 0.85; }
-.art-road { fill: #2b2b2b; }
-.art-lines { fill: none; stroke: #ffd43b; stroke-width: 2.5; stroke-dasharray: 6 7; stroke-linecap: round; }
-@media (prefers-color-scheme: dark) {
-  .art-hills-back { fill: #5a3a26; }
-  .art-road { fill: #111; }
-}
+.art-sun { fill: var(--art-sun); }
+.art-hills-back { fill: var(--art-far); }
+.art-hills { fill: var(--art-mid); }
+.art-hills-near { fill: var(--art-near); }
+.art-road { fill: var(--art-road); }
+.art-lines { fill: none; stroke: var(--art-sun); stroke-width: 2.5; stroke-dasharray: 6 7; stroke-linecap: round; }
+.art-tree { fill: var(--teal); }
 
 .trip-grid { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
 .trip-card {
@@ -159,11 +190,14 @@ textarea { resize: vertical; }
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
   padding: 16px; cursor: pointer; border-top: 4px solid var(--accent);
 }
-.trip-card:hover { box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08); }
+.trip-grid li:nth-child(4n+2) .trip-card { border-top-color: var(--teal); }
+.trip-grid li:nth-child(4n+3) .trip-card { border-top-color: var(--mustard); }
+.trip-grid li:nth-child(4n+4) .trip-card { border-top-color: var(--sage); }
+.trip-card:hover { box-shadow: 0 4px 14px var(--shadow); }
 .trip-card strong { font-size: 1.05rem; }
 .trip-route { color: var(--muted); font-size: 0.9rem; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
-.chip { background: var(--accent-soft); border-radius: 999px; padding: 3px 10px; font-size: 0.78rem; }
+.chip { background: var(--teal-soft); border-radius: 999px; padding: 3px 10px; font-size: 0.78rem; }
 
 .steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
 @media (min-width: 720px) { .steps { grid-template-columns: repeat(3, 1fr); } }
@@ -173,5 +207,7 @@ textarea { resize: vertical; }
   flex: 0 0 30px; height: 30px; border-radius: 50%; background: var(--accent); color: var(--accent-text);
   display: grid; place-items: center; font-weight: 700;
 }
+.steps li:nth-child(2) .step-num { background: var(--teal); color: var(--surface); }
+.steps li:nth-child(3) .step-num { background: var(--mustard); color: #2a2119; }
 .sample { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 20px; color: var(--muted); }
 .sample p { margin: 0; }
