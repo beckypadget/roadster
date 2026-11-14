@@ -12,6 +12,7 @@ import { Discover } from './Discover'
 import { PlanList } from './PlanList'
 import { LegRow } from './LegRow'
 import { GripIcon, StopCard } from './StopCard'
+import { StartDate } from './StartDate'
 import { StopSearch } from './StopSearch'
 
 interface Props {
@@ -118,12 +119,10 @@ export function TripView({ trip, route, routeLoading, units, onChange, onDelete,
         </button>
       </div>
 
-      <input className="title-input" value={trip.name} onChange={(e) => onChange({ ...trip, name: e.target.value })} aria-label="Trip name" />
-
-      <label className="field">
-        Start date
-        <input type="date" value={trip.startDate} onChange={(e) => onChange({ ...trip, startDate: e.target.value })} />
-      </label>
+      <div className="trip-header">
+        <input className="title-input" value={trip.name} onChange={(e) => onChange({ ...trip, name: e.target.value })} aria-label="Trip name" />
+        <StartDate value={trip.startDate} totalNights={totalNights} onChange={(startDate) => onChange({ ...trip, startDate })} />
+      </div>
 
       {trip.stops.length > 1 && (
         <div className="summary">
