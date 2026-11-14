@@ -20,7 +20,7 @@ export function LegRow({ leg, pref, loading, units, toName, onChange }: Props) {
   const dist = leg ? (units === 'mi' ? leg.distanceKm * 0.621371 : leg.distanceKm) : null
 
   return (
-    <li className="leg" aria-label={`Drive to ${toName}`}>
+    <div className="leg" role="group" aria-label={`Drive to ${toName}`}>
       <div className="leg-line" aria-hidden="true" />
       <div className="leg-body">
         <div className="leg-stats">
@@ -53,6 +53,6 @@ export function LegRow({ leg, pref, loading, units, toName, onChange }: Props) {
           <p className="hint">The motorway setting couldn’t be applied just now (routing service busy). Showing the standard route.</p>
         )}
       </div>
-    </li>
+    </div>
   )
 }

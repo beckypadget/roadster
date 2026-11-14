@@ -149,9 +149,27 @@ textarea { resize: vertical; }
 .icon:hover:not(:disabled) { background: var(--accent-soft); color: var(--text); }
 .icon:disabled { opacity: 0.3; cursor: default; }
 
+/* Drag to reorder */
+.grip {
+  flex: 0 0 auto; align-self: flex-start; display: grid; place-items: center;
+  width: 24px; height: 32px; margin: -2px -4px 0 -6px; padding: 0;
+  border: none; background: transparent; color: var(--muted); fill: currentColor;
+  border-radius: 6px; cursor: grab; touch-action: none;
+}
+.grip:hover { color: var(--text); background: var(--accent-soft); }
+.grip:focus-visible { outline: 2px solid var(--accent); }
+.stops.is-dragging .leg-stats { opacity: 0.4; } /* distances are stale until you drop */
+.stop-item.placeholder { opacity: 0.35; }
+.drag-overlay {
+  align-items: center; cursor: grabbing; box-shadow: 0 10px 28px var(--shadow);
+  border-color: var(--accent); transform: rotate(-1deg);
+}
+.drag-overlay .grip { cursor: grabbing; }
+body:has(.drag-overlay) { cursor: grabbing; }
+
 /* Legs between stops */
 .stops { gap: 0; }
-.stop { margin: 0; }
+.stop-item { list-style: none; }
 .leg { display: flex; gap: 10px; padding: 0 12px; }
 .leg-line { flex: 0 0 28px; display: flex; justify-content: center; }
 .leg-line::before { content: ''; width: 0; border-left: 3px dotted var(--border); margin: 2px 0; }
