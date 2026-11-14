@@ -386,3 +386,17 @@ button.start-date:hover { background: var(--accent-soft); color: var(--text); }
 /* Sidebar badge for a stop with no nights: small dot, centred where the number would be */
 .stop-num.stop-num-dot { background: transparent; }
 .stop-num.stop-num-dot::after { content: ''; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); }
+
+/* Tap-on-map: nearest car parks / overnight spots */
+.nearest { display: flex; flex-direction: column; gap: 8px; min-width: 220px; }
+.nearest-buttons { display: flex; flex-wrap: wrap; gap: 6px; }
+.nearest .chip-btn { background: #fbf7f0; color: #33291f; border-color: #c9b49a; }
+.nearest .chip-btn.on { background: #6b2a2a; color: #fbf7f0; border-color: #6b2a2a; }
+.nearest-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.nearest-list li { display: flex; gap: 8px; align-items: flex-start; }
+.nearest-list .popup-actions { margin-top: 2px; }
+.near-pin {
+  width: 100%; height: 100%; display: grid; place-items: center; border-radius: 50%;
+  background: #33291f; color: #fbf7f0; font: 700 11px system-ui, sans-serif; border: 2px solid #fbf7f0; box-shadow: 0 1px 4px rgba(0,0,0,.4);
+}
+.near-pin.small { flex: 0 0 20px; width: 20px; height: 20px; font-size: 10px; box-shadow: none; }

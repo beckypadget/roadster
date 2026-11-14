@@ -6,6 +6,7 @@ import { categoryInfo, type Suggestion } from '../discover'
 import { nightNumbers, pinLabels, type PinMode } from '../pins'
 import type { Plan, RouteInfo, Stop } from '../types'
 import { CarParkLayer, VanLayer, type AddPlace, type LayerStatus } from './MapLayers'
+import { NearestTool } from './NearestTool'
 
 type Pt = { lat: number; lng: number }
 
@@ -81,6 +82,7 @@ interface Props {
   previewRoutes: [number, number][][]
   pinMode: PinMode
   onPinModeChange: (m: PinMode) => void
+  units: 'km' | 'mi'
 }
 
 type Layers = { parking: boolean; van: boolean }
@@ -93,7 +95,7 @@ const loadLayers = (): Layers => {
   }
 }
 
-export function TripMap({ stops, route, suggestions, focus, onAddStop, previewRoutes, pinMode, onPinModeChange }: Props) {
+export function TripMap({ stops, route, suggestions, focus, onAddStop, previewRoutes, pinMode, onPinModeChange, units }: Props) {
   const [layers, setLayers] = useState<Layers>(loadLayers)
   const [parkStatus, setParkStatus] = useState<LayerStatus>(null)
   const [vanStatus, setVanStatus] = useState<LayerStatus>(null)
@@ -176,6 +178,7 @@ export function TripMap({ stops, route, suggestions, focus, onAddStop, previewRo
       })}
       {layers.parking && <CarParkLayer onStatus={setParkStatus} onAddStop={onAddStop} />}
       {layers.van && <VanLayer onStatus={setVanStatus} onAddStop={onAddStop} />}
+      <NearestTool units={units} onAddStop={onAddStop} />
       <FitStops stops={stops} active={mappable.length === 0} />
       <FitSuggestions points={mappable} />
       <FlyTo focus={focus} />

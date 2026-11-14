@@ -1,5 +1,6 @@
 import { VectorTile } from '@mapbox/vector-tile'
 import { PbfReader } from 'pbf'
+import { haversineKm } from './geo'
 import { overpassLikelyDown, overpass } from './overpass'
 
 /**
@@ -124,10 +125,10 @@ function loadTile(tpl: string, x: number, y: number): Promise<TilePoi[]> {
   return p
 }
 
-async function tilePois(b: Bounds): Promise<TilePoi[]> {
+async function tilePois(b: Bounds, maxTiles = MAX_TILES): Promise<TilePoi[]> {
   const [x1, y1] = tileXY(b.north, b.west, TILE_ZOOM)
   const [x2, y2] = tileXY(b.south, b.east, TILE_ZOOM)
-  if ((x2 - x1 + 1) * (y2 - y1 + 1) > MAX_TILES) throw new Error('zoom in')
+  if ((x2 - x1 + 1) * (y2 - y1 + 1) > maxTiles) throw new Error('zoom in')
   const tpl = await tileTemplate()
   const jobs: Promise<TilePoi[]>[] = []
   for (let x = x1; x <= x2; x++) for (let y = y1; y <= y2; y++) jobs.push(loadTile(tpl, x, y))
@@ -139,8 +140,8 @@ async function tilePois(b: Bounds): Promise<TilePoi[]> {
 /** Names that suggest the public can't use it */
 const NOT_PUBLIC = /\b(private|staff|residents?|permit holders|customers only|patrons|employees|police|hospital staff)\b/i
 
-export async function carParksIn(b: Bounds): Promise<CarPark[]> {
-  const pois = await tilePois(b)
+export async function carParksIn(b: Bounds, maxTiles = MAX_TILES): Promise<CarPark[]> {
+  const pois = await tilePois(b, maxTiles)
   return pois
     .filter((p) => p.cls === 'parking' && !(p.name && NOT_PUBLIC.test(p.name)))
     .map((p) => ({ id: `cp:${p.lat.toFixed(5)},${p.lng.toFixed(5)}`, lat: p.lat, lng: p.lng, name: p.name }))
@@ -208,8 +209,8 @@ export async function vanSpotsDetailed(b: Bounds, signal?: AbortSignal): Promise
 }
 
 /** Plain campsites from the map tiles: instant, but no van details (zoomed in only). */
-export async function vanSpotsBasic(b: Bounds): Promise<VanSpot[]> {
-  const pois = await tilePois(b)
+export async function vanSpotsBasic(b: Bounds, maxTiles = MAX_TILES): Promise<VanSpot[]> {
+  const pois = await tilePois(b, maxTiles)
   return pois
     .filter((p) => p.cls === 'campsite')
     .map((p) => ({
@@ -220,3 +221,48 @@ export async function vanSpotsBasic(b: Bounds): Promise<VanSpot[]> {
 
 export const directionsUrl = (lat: number, lng: number) =>
   `https://www.google.com/maps/dir/?api=1&destination=${lat.toFixed(6)},${lng.toFixed(6)}`
+
+// ---------- Nearest to a point (tap on the map) ----------
+
+type Pt = { lat: number; lng: number }
+export type Nearest<T> = T & { distanceKm: number }
+
+const boxAround = (p: Pt, km: number): Bounds => {
+  const dLat = km / 111
+  const dLng = km / (111 * Math.cos((p.lat * Math.PI) / 180))
+  return { south: p.lat - dLat, west: p.lng - dLng, north: p.lat + dLat, east: p.lng + dLng }
+}
+
+const nearestFirst = <T extends Pt>(items: T[], p: Pt, n: number): Nearest<T>[] =>
+  items
+    .map((i) => ({ ...i, distanceKm: haversineKm(p, i) }))
+    .sort((a, b) => a.distanceKm - b.distanceKm)
+    .slice(0, n)
+
+/** The few car parks nearest a point, searching outwards up to ~5 km. */
+export async function nearestCarParks(p: Pt, n = 3): Promise<{ list: Nearest<CarPark>[]; searchedKm: number }> {
+  let searchedKm = 0
+  for (const km of [1.5, 3, 5]) {
+    searchedKm = km
+    const parks = (await carParksIn(boxAround(p, km), 64)).filter((c) => haversineKm(p, c) <= km)
+    if (parks.length >= n || km === 5) return { list: nearestFirst(parks, p, n), searchedKm }
+  }
+  return { list: [], searchedKm }
+}
+
+/**
+ * The few overnight spots nearest a point (within 30 km), van-friendly ones
+ * first when they're about as close. Falls back to plain campsites from the
+ * map tiles (within ~5 km) when Overpass is busy.
+ */
+export async function nearestVanSpots(p: Pt, n = 3, signal?: AbortSignal): Promise<{ list: Nearest<VanSpot>[]; detailed: boolean }> {
+  try {
+    const spots = await vanSpotsDetailed(boxAround(p, 30), signal)
+    const overnight = spots.filter((s) => s.kind !== 'services') // waste/water points aren't places to sleep
+    return { list: nearestFirst(overnight, p, n), detailed: true }
+  } catch (e) {
+    if (signal?.aborted) throw e
+    const basic = await vanSpotsBasic(boxAround(p, 5), 64)
+    return { list: nearestFirst(basic, p, n), detailed: false }
+  }
+}

@@ -99,6 +99,7 @@ export default function App() {
               previewRoutes={previewRoutes}
               pinMode={pinMode}
               onPinModeChange={changePinMode}
+              units={units}
               onAddStop={(p) => {
                 // Insert after the nearest existing stop (drag to adjust)
                 const stops = trip.stops
