@@ -30,13 +30,14 @@ export function TripMap({ stops, route }: { stops: Stop[]; route: RouteInfo | nu
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      {route && route.path.length > 1 && (
+      {route?.legs.map((leg, i) => (
         <Polyline
-          positions={route.path}
+          key={`${i}-${leg.path.length}-${leg.distanceKm}`}
+          positions={leg.path}
           className="route-line"
-          pathOptions={{ weight: 5, opacity: 0.9, dashArray: route.estimated ? '8 8' : undefined }}
+          pathOptions={{ weight: 5, opacity: 0.9, dashArray: leg.estimated ? '8 8' : undefined }}
         />
-      )}
+      ))}
       {stops.map((s, i) => (
         <Marker key={s.id} position={[s.lat, s.lng]} icon={numberedIcon(i + 1, i === stops.length - 1 && i > 0)}>
           <Popup>

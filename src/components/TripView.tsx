@@ -1,6 +1,8 @@
 import type { PlaceResult } from '../search'
 import { formatDuration } from '../geo'
-import type { RouteInfo, Stop, Trip } from '../types'
+import { Fragment } from 'react'
+import type { RoadPref, RouteInfo, Stop, Trip } from '../types'
+import { LegRow } from './LegRow'
 import { StopSearch } from './StopSearch'
 
 interface Props {
@@ -80,7 +82,18 @@ export function TripView({ trip, route, routeLoading, units, onChange, onDelete,
 
       <ol className="stops">
         {trip.stops.map((s, i) => (
-          <li key={s.id} className="stop">
+          <Fragment key={s.id}>
+          {i > 0 && (
+            <LegRow
+              leg={route?.legs[i - 1]}
+              pref={s.arriveVia ?? 'standard'}
+              loading={routeLoading && !route?.legs[i - 1]}
+              units={units}
+              toName={s.name}
+              onChange={(p: RoadPref) => updateStop(s.id, { arriveVia: p })}
+            />
+          )}
+          <li className="stop">
             <div className="stop-num">{i + 1}</div>
             <div className="stop-body">
               <div className="row between">
@@ -111,6 +124,7 @@ export function TripView({ trip, route, routeLoading, units, onChange, onDelete,
               />
             </div>
           </li>
+          </Fragment>
         ))}
       </ol>
       {trip.stops.length === 0 && <p className="hint">Search for your starting point to begin.</p>}

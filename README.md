@@ -4,7 +4,7 @@ A road-trip planner that installs as a Progressive Web App (PWA) on phones and l
 
 ## Features
 - Create trips and add stops by searching for places. Search combines Nominatim (best overall matches) and Photon (location-aware), and ranks results by name match, how notable the place is, and distance from your stops (`src/search.ts`)
-- Driving route, distance and drive time on a map (OSRM demo server; falls back to a dashed straight line if it's unavailable)
+- Driving route on a map, routed leg by leg with Valhalla (FOSSGIS public server). Each leg can avoid, use standard, or prefer motorways, and shows its own distance and time. Legs are cached on the device; OSRM is the backup router, then a dashed straight line (`src/routing.ts`)
 - Reorder stops, set nights per stop, add notes, and see arrival dates from a start date
 - Switch between km and miles
 - Trips are saved on the device (localStorage). Map tiles you've viewed are cached for weak-signal use.

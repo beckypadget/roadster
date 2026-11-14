@@ -1,3 +1,6 @@
+/** How to drive a leg: Valhalla's use_highways 0 / 0.5 / 1 */
+export type RoadPref = 'avoid' | 'standard' | 'prefer'
+
 export interface Stop {
   id: string
   name: string
@@ -5,6 +8,8 @@ export interface Stop {
   lng: number
   nights: number
   notes: string
+  /** Motorway preference for the drive *to* this stop. Missing means 'standard'. */
+  arriveVia?: RoadPref
 }
 
 export interface Trip {
@@ -15,11 +20,21 @@ export interface Trip {
   createdAt: number
 }
 
-export interface RouteInfo {
-  /** [lat, lng] points along the route */
+export interface LegInfo {
+  /** [lat, lng] points along the leg */
   path: [number, number][]
   distanceKm: number
   durationMin: number | null
-  /** true when real road routing was unavailable and we drew straight lines */
+  /** true when road routing was unavailable and we drew a straight line */
+  estimated: boolean
+  /** false when the backup router was used and the motorway setting couldn't be applied */
+  prefApplied: boolean
+}
+
+export interface RouteInfo {
+  /** legs[i] is the drive from stops[i] to stops[i + 1] */
+  legs: LegInfo[]
+  distanceKm: number
+  durationMin: number | null
   estimated: boolean
 }

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Home } from './components/Home'
 import { TripMap } from './components/TripMap'
 import { TripView } from './components/TripView'
-import { getRoute } from './geo'
+import { getRoute, routeIsCached } from './routing'
 import { samplePacificCoastStops } from './sampleTrip'
 import { useTrips } from './storage'
 import type { RouteInfo } from './types'
@@ -24,8 +24,8 @@ export default function App() {
   const [units, setUnits] = useState(defaultUnits)
 
   const trip = page.page === 'trip' ? (trips.find((t) => t.id === page.id) ?? null) : null
-  // Only re-route when the stop positions/order change, not on note edits
-  const routeKey = trip?.stops.map((s) => `${s.lat},${s.lng}`).join('|') ?? ''
+  // Only re-route when stop positions/order or motorway settings change, not on note edits
+  const routeKey = trip?.stops.map((s) => `${s.lat},${s.lng},${s.arriveVia ?? ''}`).join('|') ?? ''
 
   useEffect(() => {
     if (!trip || trip.stops.length < 2) {
@@ -33,7 +33,7 @@ export default function App() {
       return
     }
     const ctrl = new AbortController()
-    setRouteLoading(true)
+    setRouteLoading(!routeIsCached(trip.stops))
     getRoute(trip.stops, ctrl.signal)
       .then(setRoute)
       .catch(() => {})
