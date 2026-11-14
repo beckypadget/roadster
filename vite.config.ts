@@ -12,7 +12,7 @@ export default defineConfig({
         name: 'Roadster',
         short_name: 'Roadster',
         description: 'Plan road trips: stops, routes and itineraries.',
-        theme_color: '#2C5F5C',
+        theme_color: '#6B2A2A',
         background_color: '#F3ECE0',
         display: 'standalone',
         start_url: '/',
