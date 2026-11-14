@@ -34,6 +34,9 @@ const collision: CollisionDetection = (args) => {
   return hits.length ? hits : closestCenter(args)
 }
 
+/** New stops assume one night there; change it on the stop. */
+export const DEFAULT_NIGHTS = 1
+
 function addDays(iso: string, days: number) {
   const d = new Date(iso + 'T00:00:00')
   d.setDate(d.getDate() + days)
@@ -73,7 +76,7 @@ export function TripView({ trip, route, routeLoading, units, onChange, onDelete,
   const dragIndex = dragging ? trip.stops.indexOf(dragging) : -1
 
   const addStop = (p: PlaceResult) =>
-    setStops([...trip.stops, { id: crypto.randomUUID(), name: p.name, lat: p.lat, lng: p.lng, nights: 0, notes: '' }])
+    setStops([...trip.stops, { id: crypto.randomUUID(), name: p.name, lat: p.lat, lng: p.lng, nights: DEFAULT_NIGHTS, notes: '' }])
 
   // Discover: one panel open at a time, either near a stop or along the leg to it
   const [discover, setDiscover] = useState<{ mode: 'stop' | 'leg'; stopId: string } | null>(null)
@@ -92,7 +95,7 @@ export function TripView({ trip, route, routeLoading, units, onChange, onDelete,
     setStops(trip.stops.map((x) => (x.id === stopId ? { ...x, plans: fn(x.plans ?? []) } : x)))
   /** Insert a suggestion as a new stop at `index` */
   const addSuggestionAsStop = (s: Suggestion, index: number) => {
-    const stop: Stop = { id: crypto.randomUUID(), name: s.title, lat: s.lat, lng: s.lng, nights: 0, notes: s.description }
+    const stop: Stop = { id: crypto.randomUUID(), name: s.title, lat: s.lat, lng: s.lng, nights: DEFAULT_NIGHTS, notes: s.description }
     const next = [...trip.stops]
     next.splice(index, 0, stop)
     setStops(next)

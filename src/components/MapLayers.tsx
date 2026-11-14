@@ -13,6 +13,8 @@ export interface AddPlace {
   lat: number
   lng: number
   notes?: string
+  /** Nights to plan here; defaults to 1 (car parks use 0) */
+  nights?: number
 }
 
 const carParkIcon = L.divIcon({ className: '', html: '<div class="lyr lyr-parking">P</div>', iconSize: [20, 20], iconAnchor: [10, 10] })
@@ -87,7 +89,7 @@ export function CarParkLayer({ onStatus, onAddStop }: { onStatus: (s: LayerStatu
           <Popup>
             <strong>{p.name ?? 'Car park'}</strong>
             <div className="popup-sub">Car park · check signs for fees and access</div>
-            <PlaceLinks lat={p.lat} lng={p.lng} onAdd={() => onAddStop({ name: p.name ?? 'Car park', lat: p.lat, lng: p.lng })} />
+            <PlaceLinks lat={p.lat} lng={p.lng} onAdd={() => onAddStop({ name: p.name ?? 'Car park', lat: p.lat, lng: p.lng, nights: 0 })} />
           </Popup>
         </Marker>
       ))}

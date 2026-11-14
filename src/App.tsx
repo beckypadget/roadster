@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Home } from './components/Home'
 import { TripMap } from './components/TripMap'
-import { TripView } from './components/TripView'
+import { DEFAULT_NIGHTS, TripView } from './components/TripView'
 import { haversineKm } from './geo'
 import { getRoute, routeIsCached } from './routing'
 import { samplePacificCoastStops } from './sampleTrip'
@@ -98,7 +98,7 @@ export default function App() {
                   at = nearest + 1
                 }
                 const next = [...stops]
-                next.splice(at, 0, { id: crypto.randomUUID(), name: p.name, lat: p.lat, lng: p.lng, nights: 0, notes: p.notes ?? '' })
+                next.splice(at, 0, { id: crypto.randomUUID(), name: p.name, lat: p.lat, lng: p.lng, nights: p.nights ?? DEFAULT_NIGHTS, notes: p.notes ?? '' })
                 updateTrip({ ...trip, stops: next })
               }}
             />
