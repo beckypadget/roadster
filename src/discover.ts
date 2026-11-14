@@ -20,7 +20,12 @@ export const CATEGORIES: { id: Category; label: string; icon: string }[] = [
 export const categoryInfo = (c: Category) => CATEGORIES.find((x) => x.id === c)!
 
 export interface Suggestion {
-  /** Wikipedia page title, used as a stable id */
+  /** Stable id: the Wikipedia title, or "osm:node/123" */
+  id: string
+  source: 'wikipedia' | 'osm'
+  /** Where "More" / the info link goes */
+  link: string
+  /** Display name */
   title: string
   lat: number
   lng: number
@@ -143,6 +148,9 @@ function toSuggestions(
       CATEGORY_BOOST[category] -
       0.6 * Math.log10(1 + distanceKm)
     out.push({
+      id: p.title,
+      source: 'wikipedia',
+      link: wikipediaUrl(p.title),
       title: p.title,
       ...pt,
       category,

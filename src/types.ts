@@ -12,6 +12,10 @@ export interface Plan {
   category: Category
   description: string
   thumbnail?: string
+  /** Suggestion id it came from (Wikipedia title or "osm:node/123") */
+  sourceId?: string
+  /** Info link (Wikipedia or OpenStreetMap) */
+  link?: string
   /** Saved from "along the way" on the drive to this stop, rather than near it */
   onTheWay?: boolean
   done?: boolean

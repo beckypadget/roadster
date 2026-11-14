@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  CATEGORIES, categoryInfo, fetchExtract, mixCategories, suggestAlong, suggestNear, wikipediaUrl,
+  CATEGORIES, categoryInfo, fetchExtract, mixCategories, suggestAlong, suggestNear,
   type Category, type Suggestion,
 } from '../discover'
+import { mergeOsm, osmAlong, osmNear } from '../osm'
 
 interface Props {
   /** 'stop': near a point; 'leg': along a route path */
@@ -11,8 +12,8 @@ interface Props {
   path?: [number, number][]
   placeName: string
   units: 'km' | 'mi'
-  /** Titles already saved anywhere in the trip, so we can show "Saved" */
-  savedTitles: Set<string>
+  /** Suggestion ids (and stop names) already in the trip, so we can show "Saved" */
+  savedIds: Set<string>
   onAddPlan: (s: Suggestion) => void
   onAddStop: (s: Suggestion) => void
   onResults: (list: Suggestion[]) => void
@@ -27,9 +28,14 @@ function fmt(km: number, units: 'km' | 'mi') {
   return d < 1 ? `<1 ${units}` : `${Math.round(d)} ${units}`
 }
 
-export function Discover({ mode, center, path, placeName, units, savedTitles, onAddPlan, onAddStop, onResults, onFocus, onClose }: Props) {
+export function Discover({ mode, center, path, placeName, units, savedIds, onAddPlan, onAddStop, onResults, onFocus, onClose }: Props) {
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
-  const [all, setAll] = useState<Suggestion[]>([])
+  const [wiki, setWiki] = useState<Suggestion[]>([])
+  // Viewpoints and beaches from OpenStreetMap load separately and never block the panel
+  const [osm, setOsm] = useState<Suggestion[]>([])
+  const [osmStatus, setOsmStatus] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [osmRetry, setOsmRetry] = useState(0)
+  const all = useMemo(() => mergeOsm(wiki, osm.map((o) => ({ ...o }))), [wiki, osm])
   const [filter, setFilter] = useState<Category | 'all'>('all')
   const [shown, setShown] = useState(PAGE)
   const [retry, setRetry] = useState(0)
@@ -41,7 +47,7 @@ export function Discover({ mode, center, path, placeName, units, savedTitles, on
     const run = mode === 'stop' ? suggestNear(center!, ctrl.signal) : suggestAlong(path ?? [], ctrl.signal)
     run
       .then((list) => {
-        setAll(list)
+        setWiki(list)
         setStatus('ready')
       })
       .catch((e) => {
@@ -50,6 +56,22 @@ export function Discover({ mode, center, path, placeName, units, savedTitles, on
     return () => ctrl.abort()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, retry])
+
+  useEffect(() => {
+    const ctrl = new AbortController()
+    setOsmStatus('loading')
+    const run = mode === 'stop' ? osmNear(center!, ctrl.signal) : osmAlong(path ?? [], ctrl.signal)
+    run
+      .then((list) => {
+        setOsm(list)
+        setOsmStatus('ready')
+      })
+      .catch(() => {
+        if (!ctrl.signal.aborted) setOsmStatus('error')
+      })
+    return () => ctrl.abort()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, osmRetry])
 
   const visible = useMemo(
     () => (filter === 'all' ? mixCategories(all) : all.filter((s) => s.category === filter)),
@@ -61,7 +83,7 @@ export function Discover({ mode, center, path, placeName, units, savedTitles, on
   useEffect(() => {
     onResults(page)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page.map((s) => s.title).join('|')])
+  }, [page.map((s) => s.id).join('|')])
   useEffect(() => () => onResults([]), []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const counts = useMemo(() => {
@@ -102,14 +124,21 @@ export function Discover({ mode, center, path, placeName, units, savedTitles, on
             ))}
           </div>
 
+          {osmStatus === 'loading' && <p className="hint">Adding viewpoints and beaches…</p>}
+          {osmStatus === 'error' && (
+            <p className="hint">
+              Viewpoints and beaches aren’t available right now (the map server is busy).{' '}
+              <button type="button" className="link" onClick={() => setOsmRetry((n) => n + 1)}>Try again</button>
+            </p>
+          )}
           <ul className="suggestions">
             {page.map((s) => (
               <SuggestionCard
-                key={s.title}
+                key={s.id}
                 s={s}
                 mode={mode}
                 units={units}
-                saved={savedTitles.has(s.title)}
+                saved={savedIds.has(s.id)}
                 onAddPlan={() => onAddPlan(s)}
                 onAddStop={() => onAddStop(s)}
                 onFocus={() => onFocus(s)}
@@ -121,7 +150,7 @@ export function Discover({ mode, center, path, placeName, units, savedTitles, on
               Show more ({visible.length - shown})
             </button>
           )}
-          <p className="hint attribution">Places and photos from Wikipedia.</p>
+          <p className="hint attribution">Places and photos from Wikipedia; viewpoints and beaches from © OpenStreetMap contributors.</p>
         </>
       )}
     </section>
@@ -141,7 +170,9 @@ function SuggestionCard({ s, mode, units, saved, onAddPlan, onAddStop, onFocus }
   const [open, setOpen] = useState(false)
   const toggle = () => {
     setOpen((o) => !o)
-    if (extract == null) fetchExtract(s.title).then(setExtract).catch(() => setExtract(''))
+    if (extract != null) return
+    if (s.source === 'wikipedia') fetchExtract(s.title).then(setExtract).catch(() => setExtract(''))
+    else setExtract(`${s.description} from OpenStreetMap.`)
   }
   const cat = categoryInfo(s.category)
 
@@ -164,7 +195,7 @@ function SuggestionCard({ s, mode, units, saved, onAddPlan, onAddStop, onFocus }
       {open && (
         <p className="sugg-extract">
           {extract == null ? 'Loading…' : extract || 'No summary available.'}{' '}
-          <a href={wikipediaUrl(s.title)} target="_blank" rel="noreferrer">Wikipedia ↗</a>
+          <a href={s.link} target="_blank" rel="noreferrer">{s.source === 'wikipedia' ? 'Wikipedia' : 'OpenStreetMap'} ↗</a>
         </p>
       )}
       <div className="sugg-actions">

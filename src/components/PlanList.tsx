@@ -27,7 +27,7 @@ export function PlanList({ plans, onToggleDone, onRemove, onFocus }: Props) {
               <button type="button" className="plan-name" onClick={() => onFocus(p)} title="Show on map">
                 <span aria-hidden="true">{categoryInfo(p.category).icon}</span> {p.title}
               </button>
-              <a className="icon" href={wikipediaUrl(p.title)} target="_blank" rel="noreferrer" aria-label={`${p.title} on Wikipedia`}>ⓘ</a>
+              <a className="icon" href={p.link ?? wikipediaUrl(p.title)} target="_blank" rel="noreferrer" aria-label={`More about ${p.title}`}>ⓘ</a>
               <button type="button" className="icon" aria-label={`Remove ${p.title}`} onClick={() => onRemove(p.id)}>✕</button>
             </li>
           ))}

@@ -77,12 +77,12 @@ export function TripView({ trip, route, routeLoading, units, onChange, onDelete,
   const [discover, setDiscover] = useState<{ mode: 'stop' | 'leg'; stopId: string } | null>(null)
   const toggleDiscover = (mode: 'stop' | 'leg', stopId: string) =>
     setDiscover((d) => (d?.mode === mode && d.stopId === stopId ? null : { mode, stopId }))
-  const savedTitles = new Set([...trip.stops.map((s) => s.name), ...trip.stops.flatMap((s) => (s.plans ?? []).map((p) => p.title))])
+  const savedIds = new Set([...trip.stops.map((s) => s.name), ...trip.stops.flatMap((s) => (s.plans ?? []).map((p) => p.sourceId ?? p.title))])
 
   const addPlan = (stopId: string, s: Suggestion, onTheWay: boolean) => {
     const plan: Plan = {
       id: crypto.randomUUID(), title: s.title, lat: s.lat, lng: s.lng, category: s.category,
-      description: s.description, thumbnail: s.thumbnail, onTheWay,
+      description: s.description, thumbnail: s.thumbnail, sourceId: s.id, link: s.link, onTheWay,
     }
     setStops(trip.stops.map((x) => (x.id === stopId ? { ...x, plans: [...(x.plans ?? []), plan] } : x)))
   }
@@ -176,7 +176,7 @@ export function TripView({ trip, route, routeLoading, units, onChange, onDelete,
                           path={route?.legs[i - 1]?.path}
                           placeName={s.name}
                           units={units}
-                          savedTitles={savedTitles}
+                          savedIds={savedIds}
                           onAddPlan={(sg) => addPlan(s.id, sg, true)}
                           onAddStop={(sg) => addSuggestionAsStop(sg, i)}
                           onResults={onSuggestions}
@@ -205,7 +205,7 @@ export function TripView({ trip, route, routeLoading, units, onChange, onDelete,
                     center={s}
                     placeName={s.name}
                     units={units}
-                    savedTitles={savedTitles}
+                    savedIds={savedIds}
                     onAddPlan={(sg) => addPlan(s.id, sg, false)}
                     onAddStop={(sg) => addSuggestionAsStop(sg, i + 1)}
                     onResults={onSuggestions}

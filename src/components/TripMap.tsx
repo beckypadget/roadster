@@ -65,7 +65,7 @@ interface Props {
 
 export function TripMap({ stops, route, suggestions, focus }: Props) {
   const plans: Plan[] = stops.flatMap((s) => s.plans ?? [])
-  const suggestionsShown = suggestions.filter((s) => !plans.some((p) => p.title === s.title))
+  const suggestionsShown = suggestions.filter((s) => !plans.some((p) => (p.sourceId ?? p.title) === s.id))
 
   return (
     <MapContainer center={[39.5, -98.35]} zoom={4} className="map" zoomControl>
@@ -87,7 +87,7 @@ export function TripMap({ stops, route, suggestions, focus }: Props) {
         </Marker>
       ))}
       {suggestionsShown.map((s) => (
-        <Marker key={`sugg-${s.title}`} position={[s.lat, s.lng]} icon={placeIcon(categoryInfo(s.category).icon, 'suggestion', focus?.title === s.title)}>
+        <Marker key={`sugg-${s.id}`} position={[s.lat, s.lng]} icon={placeIcon(categoryInfo(s.category).icon, 'suggestion', focus?.title === s.title)}>
           <Popup><strong>{s.title}</strong><div>{s.description}</div></Popup>
         </Marker>
       ))}
