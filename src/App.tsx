@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
-import { TripList } from './components/TripList'
+import { Home } from './components/Home'
 import { TripMap } from './components/TripMap'
 import { TripView } from './components/TripView'
 import { getRoute } from './geo'
+import { samplePacificCoastStops } from './sampleTrip'
 import { useTrips } from './storage'
 import type { RouteInfo } from './types'
+import { useHashRoute } from './useHashRoute'
 
 const defaultUnits = (): 'km' | 'mi' => {
   try {
@@ -16,12 +18,12 @@ const defaultUnits = (): 'km' | 'mi' => {
 
 export default function App() {
   const { trips, addTrip, updateTrip, deleteTrip } = useTrips()
-  const [openId, setOpenId] = useState<string | null>(null)
+  const { route: page, go } = useHashRoute()
   const [route, setRoute] = useState<RouteInfo | null>(null)
   const [routeLoading, setRouteLoading] = useState(false)
   const [units, setUnits] = useState(defaultUnits)
 
-  const trip = trips.find((t) => t.id === openId) ?? null
+  const trip = page.page === 'trip' ? (trips.find((t) => t.id === page.id) ?? null) : null
   // Only re-route when the stop positions/order change, not on note edits
   const routeKey = trip?.stops.map((s) => `${s.lat},${s.lng}`).join('|') ?? ''
 
@@ -44,37 +46,46 @@ export default function App() {
     try { localStorage.setItem('roadster.units', units) } catch { /* ignore */ }
   }, [units])
 
+  const openTrip = (id: string) => go({ page: 'trip', id })
+
   return (
     <div className="app">
       <header className="topbar">
-        <div className="brand">
+        <a className="brand" href="#/">
           <img src="/logo.svg" alt="" width={28} height={28} />
           <span>Roadster</span>
-        </div>
+        </a>
         <button className="btn ghost small" onClick={() => setUnits(units === 'km' ? 'mi' : 'km')} aria-label="Toggle units">
           {units === 'km' ? 'km' : 'miles'}
         </button>
       </header>
-      <main className="layout">
-        <section className="sidebar">
-          {trip ? (
+      {trip ? (
+        <main className="layout">
+          <section className="sidebar">
             <TripView
               trip={trip}
               route={route}
               routeLoading={routeLoading}
               units={units}
               onChange={updateTrip}
-              onDelete={() => { deleteTrip(trip.id); setOpenId(null) }}
-              onBack={() => setOpenId(null)}
+              onDelete={() => { deleteTrip(trip.id); go({ page: 'home' }) }}
+              onBack={() => go({ page: 'home' })}
             />
-          ) : (
-            <TripList trips={trips} onOpen={setOpenId} onCreate={(name) => setOpenId(addTrip(name).id)} />
-          )}
-        </section>
-        <section className="map-wrap">
-          <TripMap stops={trip?.stops ?? []} route={route} />
-        </section>
-      </main>
+          </section>
+          <section className="map-wrap">
+            <TripMap stops={trip.stops} route={route} />
+          </section>
+        </main>
+      ) : (
+        <main className="home-wrap">
+          <Home
+            trips={trips}
+            onOpen={openTrip}
+            onCreate={(name) => openTrip(addTrip(name).id)}
+            onCreateSample={() => openTrip(addTrip('Pacific Coast Highway (sample)', samplePacificCoastStops()).id)}
+          />
+        </main>
+      )}
     </div>
   )
 }

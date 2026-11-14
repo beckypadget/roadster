@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { Trip } from './types'
+import type { Stop, Trip } from './types'
 
 const KEY = 'roadster.trips.v1'
 
@@ -27,8 +27,8 @@ export function useTrips() {
   const updateTrip = (trip: Trip) =>
     setTrips((ts) => ts.map((t) => (t.id === trip.id ? trip : t)))
 
-  const addTrip = (name: string): Trip => {
-    const trip: Trip = { id: crypto.randomUUID(), name, startDate: '', stops: [], createdAt: Date.now() }
+  const addTrip = (name: string, stops: Stop[] = []): Trip => {
+    const trip: Trip = { id: crypto.randomUUID(), name, startDate: '', stops, createdAt: Date.now() }
     setTrips((ts) => [trip, ...ts])
     return trip
   }
